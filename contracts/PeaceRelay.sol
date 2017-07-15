@@ -57,6 +57,10 @@ contract PeaceRelay {
       return header;
    }
 
+   function getStackLength(bytes rlpProof) constant returns (uint) {
+     RLP.RLPItem[] memory stack = rlpProof.toRLPItem().toList();
+     return stack.length;
+   }
 
   function checkProof(bytes32 txRoot, bytes rlpProof, uint[] indexes, bytes rlpTransaction) constant returns (bool) {
     RLP.RLPItem[] memory stack = rlpProof.toRLPItem().toList();
@@ -70,7 +74,6 @@ contract PeaceRelay {
         if (hashOfNode != sha3(currNode)) {return false;}
         currNodeList = stack[i].toList();
         RLP.RLPItem memory value = currNodeList[currNodeList.length - 1];
-        //return 989;
         if (sha3(rlpTransaction) == sha3(value.toBytes())) {
           return true;
         } else {
@@ -81,6 +84,7 @@ contract PeaceRelay {
       if (hashOfNode != sha3(currNode)) {return false;}
       currNodeList = stack[i].toList();
       hashOfNode = currNodeList[indexes[i]].toBytes32();
+      if (i == 1) return true;
     }
   }
 
