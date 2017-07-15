@@ -45,16 +45,18 @@ contract PeaceRelay {
       var it = rlpHeader.toRLPItem().iterator();
 
       uint idx;
-      while(it.hasNext() && idx < 5) {
+      while(it.hasNext()) {
          if (idx == 0) {
             header.prevBlockHash = it.next().toUint();
-         } else if (idx == 4) {
+         } else if (idx == 3) {
             header.txRoot = bytes32(it.next().toUint());
          }
+         it.next();
          idx++;
       }
       return header;
    }
+
 
    function checkProof(bytes rlpProof, bytes rlpPath, bytes rlpTransaction) returns (bool) {
       return true;
@@ -80,4 +82,8 @@ contract PeaceRelay {
       }
    return transaction;
    }
+
+	 function getTxRoot(bytes32 blockHash) constant returns (bytes32) {
+		 return blocks[blockHash].txRoot;
+	 }
 }
