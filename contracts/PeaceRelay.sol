@@ -27,7 +27,7 @@ contract PeaceRelay {
       blocks[blockHash] = header;
    }
 
-   function verifyTransaction(bytes rlpProof, bytes rlpPath, bytes rlpTransaction, bytes32 blockHash) {
+   function verifyTransaction(bytes rlpProof, bytes rlpPath, bytes rlpTransaction, bytes32 blockHash) returns (bool){
       BlockHeader memory header = blocks[blockHash];
 
       //if (!checkProof(rlpProof, rlpPath, rlpTransaction)) {
@@ -36,6 +36,7 @@ contract PeaceRelay {
 
       bytes32 txHash = sha3(rlpTransaction);
       transactions[txHash] = parseTransaction(rlpTransaction);
+      return true;
    }
 
    // HELPER FUNCTIONS
