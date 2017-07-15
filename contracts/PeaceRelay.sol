@@ -30,9 +30,9 @@ contract PeaceRelay {
    function verifyTransaction(bytes rlpProof, bytes rlpPath, bytes rlpTransaction, bytes32 blockHash) {
       BlockHeader memory header = blocks[blockHash];
 
-      if (!checkProof(rlpProof, rlpPath, rlpTransaction)) {
-         throw;
-      }
+      //if (!checkProof(rlpProof, rlpPath, rlpTransaction)) {
+      //   throw;
+      //}
 
       bytes32 txHash = sha3(rlpTransaction);
       transactions[txHash] = parseTransaction(rlpTransaction);
@@ -40,7 +40,7 @@ contract PeaceRelay {
 
    // HELPER FUNCTIONS
 
-   function parseBlockHeader(bytes rlpHeader) constant internal returns(BlockHeader) {
+   function parseBlockHeader(bytes rlpHeader) constant internal returns (BlockHeader) {
       BlockHeader memory header;
       var it = rlpHeader.toRLPItem().iterator();
 
@@ -58,9 +58,31 @@ contract PeaceRelay {
    }
 
 
-   function checkProof(bytes rlpProof, bytes rlpPath, bytes rlpTransaction) returns (bool) {
-      return true;
-   }
+  function checkProof(bytes32 txRoot, bytes rlpProof, uint[] indexes, bytes rlpTransaction) constant returns (bool) {
+    RLP.RLPItem[] memory stack = rlpProof.toRLPItem().toList();
+    bytes32 hashOfNode = txRoot;
+    bytes memory currNode;
+    RLP.RLPItem[] memory currNodeList;
+
+    for (uint i = 0; i < stack.length; i++) {
+      if (i == stack.length - 1) {
+        currNode = stack[i].toBytes();
+        if (hashOfNode != sha3(currNode)) {return false;}
+        currNodeList = stack[i].toList();
+        RLP.RLPItem memory value = currNodeList[currNodeList.length - 1];
+        //return 989;
+        if (sha3(rlpTransaction) == sha3(value.toBytes())) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      currNode = stack[i].toBytes();
+      if (hashOfNode != sha3(currNode)) {return false;}
+      currNodeList = stack[i].toList();
+      hashOfNode = currNodeList[indexes[i]].toBytes32();
+    }
+  }
 
    function parseTransaction(bytes rlpTransaction) constant internal returns(Transaction) {
       Transaction memory transaction;
