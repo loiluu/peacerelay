@@ -1,7 +1,16 @@
 var PeaceRelay = artifacts.require("./PeaceRelay.sol");
+EthProof  = require('../merkle-patricia-proof/lib/ethProof.js')
+EthVerify = require('../merkle-patricia-proof/lib/ethVerify.js')
+ethProof = new EthProof(new Web3.providers.HttpProvider("https://mainnet.infura.io"))
+
+
+ethProof.getTxProof('0xb53f752216120e8cbe18783f41c6d960254ad59fac16229d4eaec5f7591319de', function(error,result){
+  console.log(result)
+})
 
 contract('PeaceRelay', function(accounts) {
   var peaceRelay
+
   it("Should allow for blocks to be submitted, correctly grabbing tx root", function () {
     var blockHash = "0xf82990de9b368d810ce4b858c45717737245aa965771565f8a41df4c75acc171"
 
