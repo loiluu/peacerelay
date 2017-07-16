@@ -37,7 +37,6 @@ contract ETCLocking is SafeMath {
   event Locked(address indexed from, address indexed ethAddr, uint value);
   event Unlocked(address indexed to, uint value);
 
-
   function ETCLocking(address peaceRelayAddr, address _etcTokenAddr, uint depositGasMinimum,
                     bytes4 burnFunctionSig)
   {
@@ -67,8 +66,8 @@ contract ETCLocking is SafeMath {
       address etcAddress = getAddress(tx.data);
       uint etcValue = getValue(tx.data);
 
-      totalSupply = safeSub(totalSupply, etcValue);      
-      // use transfer instead of send 
+      totalSupply = safeSub(totalSupply, etcValue);
+      // use transfer instead of send
       etcAddress.transfer(etcValue);
       assert(totalSupply == this.balance);
       Unlocked(etcAddress, etcValue);
@@ -79,19 +78,16 @@ contract ETCLocking is SafeMath {
 
   function lock(address ethAddr) returns (bool success) {
     // safeAdd already has throw, so no need to throw
+    // Note: This will never throw, as there is a max amount of tokens on a chain
     totalSupply = safeAdd(totalSupply, msg.value);
     Locked(msg.sender, ethAddr, msg.value);
     return true;
   }
-  
+
   // Non-payable unnamed function prevents Ether from being sent accidentally
   function () {}
 
-
-
   // HELPER FUNCTIONS
-
-
   function getSig(bytes b) constant returns (bytes4 functionSig) {
     if (b.length < 32) throw;
     assembly {

@@ -29,7 +29,17 @@ contract PeaceRelay {
       blocks[blockHash] = header;
    }
 
-   function checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction) returns (bool) {
+   //This function probably does not work as-is
+   function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpState) constant returns (bool) {
+     bytes32 stateRoot = blocks[blockHash].stateRoot;
+     if (checkProof(stateRoot, rlpStack, indexes, rlpState)) {
+       return true;
+     } else {
+       return false;
+     }
+   }
+
+   function checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction) constant returns (bool) {
       bytes32 txRoot = blocks[blockHash].txRoot;
       if (checkProof(txRoot, rlpStack, indexes, rlpTransaction)) {
         return true;
@@ -38,19 +48,9 @@ contract PeaceRelay {
       }
    }
 
-   function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpReceipt) returns (bool) {
+   function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpReceipt) constant returns (bool) {
      bytes32 receiptRoot = blocks[blockHash].receiptRoot;
      if (checkProof(receiptRoot, rlpStack, indexes, rlpReceipt)) {
-       return true;
-     } else {
-       return false;
-     }
-   }
-
-   //This function probably does not work as-is
-   function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpState) returns (bool) {
-     bytes32 stateRoot = blocks[blockHash].stateRoot;
-     if (checkProof(stateRoot, rlpStack, indexes, rlpState)) {
        return true;
      } else {
        return false;
@@ -129,10 +129,18 @@ contract PeaceRelay {
          idx++;
          */
       }
-   return transaction;
+      return transaction;
    }
+
+   function getStateRoot(bytes32 blockHash) constant returns (bytes32) {
+		 return blocks[blockHash].stateRoot;
+	 }
 
 	 function getTxRoot(bytes32 blockHash) constant returns (bytes32) {
 		 return blocks[blockHash].txRoot;
+	 }
+
+   function getReceiptRoot(bytes32 blockHash) constant returns (bytes32) {
+		 return blocks[blockHash].receiptRoot;
 	 }
 }
