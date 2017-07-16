@@ -12,7 +12,9 @@ contract PeaceRelay {
 
    struct BlockHeader {
       uint      prevBlockHash;// 0
+      bytes32   stateRoot;    // 3
       bytes32   txRoot;       // 4
+      bytes32   receiptRoot;  // 5
    }
 
    struct Transaction {
@@ -27,16 +29,32 @@ contract PeaceRelay {
       blocks[blockHash] = header;
    }
 
-   function verifyTransaction(bytes rlpProof, bytes rlpPath, bytes rlpTransaction, bytes32 blockHash) returns (bool){
-      BlockHeader memory header = blocks[blockHash];
+   function checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction) returns (bool) {
+      bytes32 txRoot = blocks[blockHash].txRoot;
+      if (checkProof(txRoot, rlpStack, indexes, rlpTransaction)) {
+        return true;
+      } else {
+        return false;
+      }
+   }
 
-      //if (!checkProof(rlpProof, rlpPath, rlpTransaction)) {
-      //   throw;
-      //}
+   function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpReceipt) returns (bool) {
+     bytes32 receiptRoot = blocks[blockHash].receiptRoot;
+     if (checkProof(receiptRoot, rlpStack, indexes, rlpReceipt)) {
+       return true;
+     } else {
+       return false;
+     }
+   }
 
-      bytes32 txHash = sha3(rlpTransaction);
-      transactions[txHash] = parseTransaction(rlpTransaction);
-      return true;
+   //This function probably does not work as-is
+   function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpState) returns (bool) {
+     bytes32 stateRoot = blocks[blockHash].stateRoot;
+     if (checkProof(stateRoot, rlpStack, indexes, rlpState)) {
+       return true;
+     } else {
+       return false;
+     }
    }
 
    // HELPER FUNCTIONS
@@ -50,8 +68,14 @@ contract PeaceRelay {
          if (idx == 0) {
             header.prevBlockHash = it.next().toUint();
          } else if (idx == 3) {
+            header.stateRoot = bytes32(it.next().toUint());
+         } else if (idx == 4) {
             header.txRoot = bytes32(it.next().toUint());
+         } else if (idx == 5) {
+            header.receiptRoot = bytes32(it.next().toUint());
          }
+         //Should get receipts root and state root also
+
          it.next();
          idx++;
       }
@@ -63,31 +87,31 @@ contract PeaceRelay {
      return stack.length;
    }
 
-  function checkProof(bytes32 txRoot, bytes rlpProof, uint[] indexes, bytes rlpTransaction) constant returns (bool) {
-    RLP.RLPItem[] memory stack = rlpProof.toRLPItem().toList();
-    bytes32 hashOfNode = txRoot;
-    bytes memory currNode;
-    RLP.RLPItem[] memory currNodeList;
+   function checkProof(bytes32 rootHash, bytes rlpStack, uint[] indexes, bytes rlpValue) constant returns (bool) {
+     RLP.RLPItem[] memory stack = rlpStack.toRLPItem().toList();
+     bytes32 hashOfNode = rootHash;
+     bytes memory currNode;
+     RLP.RLPItem[] memory currNodeList;
 
-    for (uint i = 0; i < stack.length; i++) {
-      if (i == stack.length - 1) {
-        currNode = stack[i].toBytes();
-        if (hashOfNode != sha3(currNode)) {return false;}
-        currNodeList = stack[i].toList();
-        RLP.RLPItem memory value = currNodeList[currNodeList.length - 1];
-        if (sha3(rlpTransaction) == sha3(value.toBytes())) {
-          return true;
-        } else {
-          return false;
-        }
-      }
-      currNode = stack[i].toBytes();
-      if (hashOfNode != sha3(currNode)) {return false;}
-      currNodeList = stack[i].toList();
-      hashOfNode = currNodeList[indexes[i]].toBytes32();
-      if (i == 1) return true;
-    }
-  }
+     for (uint i = 0; i < stack.length; i++) {
+       if (i == stack.length - 1) {
+         currNode = stack[i].toBytes();
+         if (hashOfNode != sha3(currNode)) {return false;}
+         currNodeList = stack[i].toList();
+         RLP.RLPItem memory value = currNodeList[currNodeList.length - 1];
+         if (sha3(rlpValue) == sha3(value.toBytes())) {
+           return true;
+         } else {
+           return false;
+         }
+       }
+       currNode = stack[i].toBytes();
+       if (hashOfNode != sha3(currNode)) {return false;}
+       currNodeList = stack[i].toList();
+       hashOfNode = currNodeList[indexes[i]].toBytes32();
+       if (i == 1) return true;
+     }
+   }
 
    function parseTransaction(bytes rlpTransaction) constant internal returns(Transaction) {
       Transaction memory transaction;
