@@ -23,7 +23,7 @@ contract PeaceRelay {
 
    //For now, just assume all blocks are good + valid.
    //In the future, will use SmartPool's verification.
-   function submitBlock(bytes rlpHeader, bytes32 blockHash) {
+   function submitBlock(bytes32 blockHash, bytes rlpHeader) {
       BlockHeader memory header = parseBlockHeader(rlpHeader);
 
       blocks[blockHash] = header;
@@ -58,29 +58,27 @@ contract PeaceRelay {
    }
 
    // HELPER FUNCTIONS
-
    function parseBlockHeader(bytes rlpHeader) constant internal returns (BlockHeader) {
-      BlockHeader memory header;
-      var it = rlpHeader.toRLPItem().iterator();
+       BlockHeader memory header;
+       var it = rlpHeader.toRLPItem().iterator();
 
-      uint idx;
-      while(it.hasNext()) {
-         if (idx == 0) {
-            header.prevBlockHash = it.next().toUint();
-         } else if (idx == 3) {
+       uint idx;
+       while(it.hasNext()) {
+          if (idx == 0) {
+             header.prevBlockHash = it.next().toUint();
+          } else if (idx == 3) {
             header.stateRoot = bytes32(it.next().toUint());
-         } else if (idx == 4) {
-            header.txRoot = bytes32(it.next().toUint());
-         } else if (idx == 5) {
-            header.receiptRoot = bytes32(it.next().toUint());
-         }
-         //Should get receipts root and state root also
-
-         it.next();
-         idx++;
-      }
-      return header;
-   }
+          } else if (idx == 4) {
+             header.txRoot = bytes32(it.next().toUint());
+          } else if (idx == 5) {
+             header.receiptRoot = bytes32(it.next().toUint());
+          } else {
+            it.next();
+          }
+          idx++;
+       }
+       return header;
+    }
 
    function getStackLength(bytes rlpProof) constant returns (uint) {
      RLP.RLPItem[] memory stack = rlpProof.toRLPItem().toList();
