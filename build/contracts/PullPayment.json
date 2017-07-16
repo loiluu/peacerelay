@@ -1,0 +1,52 @@
+{
+  "contract_name": "PullPayment",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "withdrawPayments",
+      "outputs": [],
+      "payable": false,
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "payments",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "RefundETH",
+      "type": "event"
+    }
+  ],
+  "unlinked_binary": "0x6060604052341561000c57fe5b5b6101718061001c6000396000f300606060405263ffffffff60e060020a6000350416636103d70b811461002c578063e2982c211461003e575bfe5b341561003457fe5b61003c61006c565b005b341561004657fe5b61005a600160a060020a0360043516610133565b60408051918252519081900360200190f35b33600160a060020a0381166000908152602081905260409020548015156100935760006000fd5b8030600160a060020a03163110156100ab5760006000fd5b600160a060020a0382166000818152602081905260408082208290555183156108fc0291849190818181858888f1935050505015156100ea5760006000fd5b60408051600160a060020a03841681526020810183905281517f289360176646a5f99cb4b6300628426dca46b723f40db3c04449d6ed1745a0e7929181900390910190a15b5050565b600060208190529081526040902054815600a165627a7a72305820b303a1c3f95cb32988e30c59a8d20f89305ee5865675072039c2b36110bca1f30029",
+  "networks": {},
+  "schema_version": "0.0.5",
+  "updated_at": 1500180102361
+}
