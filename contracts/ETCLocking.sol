@@ -31,6 +31,15 @@ contract ETCLocking is SafeMath {
     bytes data;
   }
 
+  // struct BurnLog {
+  //   uint signature;
+  //   uint to;
+  //   uint from;
+  //   address to;
+  //   uint value;
+  //   bytes data;
+  // }
+
   event Locked(address indexed from, address indexed ethAddr, uint value);
   event Unlocked(address indexed to, uint value);
 
@@ -42,31 +51,31 @@ contract ETCLocking is SafeMath {
     etcTokenAddr = _etcTokenAddr;
     BURN_FUNCTION_SIG = burnFunctionSig;
   }
+  
+  function unlock(bytes rlpTxStack, uint[] txIndex, bytes rlpTransaction, bytes rlpRecStack, uint[] recIndex, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
+    //TODO: verify tx receipt    
+    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, rlpReceipt)) {
+        uint = getLogRa(rlpReceipt);
 
-
-  function unlock(bytes rlpProof, bytes rlpPath, bytes rlpTransaction, bytes rlpRecieptProof, bytes rlpRecPath, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
-    //TODO: verify tx receipt
-    if (true) {
       //formalize interface, then fix this
-      //if (ETCRelay.checkTxProof(blockHash, rlpProof, rlpPath, rlpTransaction, )) {
-      //  checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction)
-      Transaction memory tx = getTransactionDetails(rlpTransaction);
-      bytes4 functionSig = getSig(tx.data);
+      if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, rlpTransaction)) {
+          Transaction memory tx = getTransactionDetails(rlpTransaction);
+          bytes4 functionSig = getSig(tx.data);
 
-      assert (functionSig == BURN_FUNCTION_SIG);
-      assert (tx.to != etcTokenAddr);
-      assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
+          assert (functionSig == BURN_FUNCTION_SIG);
+          assert (tx.to != etcTokenAddr);
+          assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
 
-      address etcAddress = getAddress(tx.data);
-      uint etcValue = getValue(tx.data);
+          address etcAddress = getAddress(tx.data);
+          uint etcValue = getValue(tx.data);
 
-      totalSupply = safeSub(totalSupply, etcValue);
-      // use transfer instead of send
-      etcAddress.transfer(etcValue);
-      assert(totalSupply == this.balance);
-      Unlocked(etcAddress, etcValue);
-      return true;
-    }
+          totalSupply = safeSub(totalSupply, etcValue);
+          // use transfer instead of send
+          etcAddress.transfer(etcValue);
+          assert(totalSupply == this.balance);
+          Unlocked(etcAddress, etcValue);
+          return true;
+      }
     return false;
   }
 

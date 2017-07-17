@@ -52,10 +52,8 @@ contract ETCToken is ERC20, SafeMath, Ownable {
   }
 
 
-  function mint(bytes rlpProof, bytes rlpPath, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
-    if (true) {
-      //formalize interface, then fix this
-      //if (ETCRelay.checkTxProof(blockHash, rlpProof, rlpPath, rlpTransaction, )) {
+  function mint(bytes rlpTxStack, uint[] txIndex, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
+  	if (ETCRelay.checkTxProof(blockHash, rlpTxStack, txIndex, rlpTransaction)) {
       //  checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction)
       Transaction memory tx = getTransactionDetails(rlpTransaction);
       bytes4 functionSig = getSig(tx.data);
