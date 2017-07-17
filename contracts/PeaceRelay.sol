@@ -23,32 +23,14 @@ contract PeaceRelay {
 
    //For now, just assume all blocks are good + valid.
    //In the future, will use SmartPool's verification.
-   function submitBlock(bytes rlpHeader, bytes32 blockHash) {
+   function submitBlock(bytes32 blockHash, bytes rlpHeader) {
       BlockHeader memory header = parseBlockHeader(rlpHeader);
 
       blocks[blockHash] = header;
    }
 
-   function checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction) returns (bool) {
-      bytes32 txRoot = blocks[blockHash].txRoot;
-      if (checkProof(txRoot, rlpStack, indexes, rlpTransaction)) {
-        return true;
-      } else {
-        return false;
-      }
-   }
-
-   function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpReceipt) returns (bool) {
-     bytes32 receiptRoot = blocks[blockHash].receiptRoot;
-     if (checkProof(receiptRoot, rlpStack, indexes, rlpReceipt)) {
-       return true;
-     } else {
-       return false;
-     }
-   }
-
    //This function probably does not work as-is
-   function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpState) returns (bool) {
+   function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpState) constant returns (bool) {
      bytes32 stateRoot = blocks[blockHash].stateRoot;
      if (checkProof(stateRoot, rlpStack, indexes, rlpState)) {
        return true;
@@ -57,30 +39,46 @@ contract PeaceRelay {
      }
    }
 
-   // HELPER FUNCTIONS
-
-   function parseBlockHeader(bytes rlpHeader) constant internal returns (BlockHeader) {
-      BlockHeader memory header;
-      var it = rlpHeader.toRLPItem().iterator();
-
-      uint idx;
-      while(it.hasNext()) {
-         if (idx == 0) {
-            header.prevBlockHash = it.next().toUint();
-         } else if (idx == 3) {
-            header.stateRoot = bytes32(it.next().toUint());
-         } else if (idx == 4) {
-            header.txRoot = bytes32(it.next().toUint());
-         } else if (idx == 5) {
-            header.receiptRoot = bytes32(it.next().toUint());
-         }
-         //Should get receipts root and state root also
-
-         it.next();
-         idx++;
+   function checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction) constant returns (bool) {
+      bytes32 txRoot = blocks[blockHash].txRoot;
+      if (checkProof(txRoot, rlpStack, indexes, rlpTransaction)) {
+        return true;
+      } else {
+        return false;
       }
-      return header;
    }
+
+   function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpReceipt) constant returns (bool) {
+     bytes32 receiptRoot = blocks[blockHash].receiptRoot;
+     if (checkProof(receiptRoot, rlpStack, indexes, rlpReceipt)) {
+       return true;
+     } else {
+       return false;
+     }
+   }
+
+   // HELPER FUNCTIONS
+   function parseBlockHeader(bytes rlpHeader) constant internal returns (BlockHeader) {
+       BlockHeader memory header;
+       var it = rlpHeader.toRLPItem().iterator();
+
+       uint idx;
+       while(it.hasNext()) {
+          if (idx == 0) {
+             header.prevBlockHash = it.next().toUint();
+          } else if (idx == 3) {
+            header.stateRoot = bytes32(it.next().toUint());
+          } else if (idx == 4) {
+             header.txRoot = bytes32(it.next().toUint());
+          } else if (idx == 5) {
+             header.receiptRoot = bytes32(it.next().toUint());
+          } else {
+            it.next();
+          }
+          idx++;
+       }
+       return header;
+    }
 
    function getStackLength(bytes rlpProof) constant returns (uint) {
      RLP.RLPItem[] memory stack = rlpProof.toRLPItem().toList();
@@ -131,10 +129,18 @@ contract PeaceRelay {
          idx++;
          */
       }
-   return transaction;
+      return transaction;
    }
+
+   function getStateRoot(bytes32 blockHash) constant returns (bytes32) {
+		 return blocks[blockHash].stateRoot;
+	 }
 
 	 function getTxRoot(bytes32 blockHash) constant returns (bytes32) {
 		 return blocks[blockHash].txRoot;
+	 }
+
+   function getReceiptRoot(bytes32 blockHash) constant returns (bytes32) {
+		 return blocks[blockHash].receiptRoot;
 	 }
 }

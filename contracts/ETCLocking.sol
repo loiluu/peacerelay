@@ -12,9 +12,6 @@ contract ETCLocking is SafeMath {
   using RLP for bytes;
 
   // Public variables of the token
-  string public name;
-  string public symbol;
-  uint8 public decimals;    //How many decimals to show.
   string public version = 'v0.1';
   uint public totalSupply;
   uint public DEPOSIT_GAS_MINIMUM; //should be constant
@@ -37,14 +34,10 @@ contract ETCLocking is SafeMath {
   event Locked(address indexed from, address indexed ethAddr, uint value);
   event Unlocked(address indexed to, uint value);
 
-
   function ETCLocking(address peaceRelayAddr, address _etcTokenAddr, uint depositGasMinimum,
                     bytes4 burnFunctionSig)
   {
     totalSupply = 0;
-    name = 'ETCLocking';        // Set the name for display purposes
-    symbol = 'ETCL';                       // Set the symbol for display purposes
-    decimals = 9;                        // Amount of decimals for display purposes
     ETHRelay = PeaceRelay(peaceRelayAddr);
     etcTokenAddr = _etcTokenAddr;
     BURN_FUNCTION_SIG = burnFunctionSig;
@@ -60,15 +53,15 @@ contract ETCLocking is SafeMath {
       Transaction memory tx = getTransactionDetails(rlpTransaction);
       bytes4 functionSig = getSig(tx.data);
 
-      if (functionSig != BURN_FUNCTION_SIG) throw;
-      if (tx.to != etcTokenAddr) throw;
-      if (tx.gasLimit < DEPOSIT_GAS_MINIMUM) throw;
+      assert (functionSig == BURN_FUNCTION_SIG);
+      assert (tx.to != etcTokenAddr);
+      assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
 
       address etcAddress = getAddress(tx.data);
       uint etcValue = getValue(tx.data);
 
-      totalSupply = safeSub(totalSupply, etcValue);      
-      // use transfer instead of send 
+      totalSupply = safeSub(totalSupply, etcValue);
+      // use transfer instead of send
       etcAddress.transfer(etcValue);
       assert(totalSupply == this.balance);
       Unlocked(etcAddress, etcValue);
@@ -79,6 +72,7 @@ contract ETCLocking is SafeMath {
 
   function lock(address ethAddr) returns (bool success) {
     // safeAdd already has throw, so no need to throw
+    // Note: This will never throw, as there is a max amount of tokens on a chain
     totalSupply = safeAdd(totalSupply, msg.value);
     Locked(msg.sender, ethAddr, msg.value);
     return true;
@@ -90,7 +84,6 @@ contract ETCLocking is SafeMath {
 
 
   // HELPER FUNCTIONS
-
 
   function getSig(bytes b) constant returns (bytes4 functionSig) {
     if (b.length < 32) throw;
