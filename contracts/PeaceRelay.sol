@@ -20,13 +20,44 @@ contract PeaceRelay {
    struct Transaction {
       //data
    }
+   
+   function PeaceRelay(address _ethash) {
+      ethash = Ethash(_ethash); //ethash contract
+   }
 
    //For now, just assume all blocks are good + valid.
    //In the future, will use SmartPool's verification.
-   function submitBlock(bytes rlpHeader, bytes32 blockHash) {
-      BlockHeader memory header = parseBlockHeader(rlpHeader);
+   function submitBlock(bytes rlpHeader, bytes32 blockHash, uint[8] cmix) {
+      BlockHeader memory header;
+      bytes8  nonceLe;
+      uint targetDifficulty = 10000000000;
+      (header, nonceLe) = parseBlockHeader(rlpHeader);
 
-      blocks[blockHash] = header;
+      uint[16] memory s;
+      uint  ethashResult;
+      s = ethash.computeS(uint(sha3(rlpHeader)), uint(nonceLe));
+      ethashResult = ethash.computeSha3(s, cmix);
+      if (ethashResult > ((2 ** 256 - 1) / targetDifficulty)) {
+          // should we log error message? or just throw anyway
+          if (ethashResult == 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE) {
+
+          } else {
+
+          }
+          return;
+      }
+
+       blocks[blockHash] = header;
+   }
+   
+   //This function probably does not work as-is
+   function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpState) constant returns (bool) {
+     bytes32 stateRoot = blocks[blockHash].stateRoot;
+     if (checkProof(stateRoot, rlpStack, indexes, rlpState)) {
+       return true;
+     } else {
+       return false;
+     }
    }
 
    function checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction) returns (bool) {
@@ -38,19 +69,9 @@ contract PeaceRelay {
       }
    }
 
-   function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpReceipt) returns (bool) {
+   function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpReceipt) constant returns (bool) {
      bytes32 receiptRoot = blocks[blockHash].receiptRoot;
      if (checkProof(receiptRoot, rlpStack, indexes, rlpReceipt)) {
-       return true;
-     } else {
-       return false;
-     }
-   }
-
-   //This function probably does not work as-is
-   function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpState) returns (bool) {
-     bytes32 stateRoot = blocks[blockHash].stateRoot;
-     if (checkProof(stateRoot, rlpStack, indexes, rlpState)) {
        return true;
      } else {
        return false;
@@ -73,7 +94,10 @@ contract PeaceRelay {
             header.txRoot = bytes32(it.next().toUint());
          } else if (idx == 5) {
             header.receiptRoot = bytes32(it.next().toUint());
-         }
+         } else if (idx == 7) {	// need to find out which one is nonce
+			// extract nonce from header
+			nonceLe = bytes8(it.next().toUint());
+	     }
          //Should get receipts root and state root also
 
          it.next();
@@ -133,8 +157,16 @@ contract PeaceRelay {
       }
    return transaction;
    }
-
-	 function getTxRoot(bytes32 blockHash) constant returns (bytes32) {
+   
+   function getStateRoot(bytes32 blockHash) constant returns (bytes32) {
+		 return blocks[blockHash].stateRoot;
+	 }
+	 
+   function getTxRoot(bytes32 blockHash) constant returns (bytes32) {
 		 return blocks[blockHash].txRoot;
+	 }
+
+   function getReceiptRoot(bytes32 blockHash) constant returns (bytes32) {
+		 return blocks[blockHash].receiptRoot;
 	 }
 }
