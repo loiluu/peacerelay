@@ -47,9 +47,9 @@ contract ETCLocking is SafeMath {
     etcTokenAddr = _etcTokenAddr;
     BURN_FUNCTION_SIG = burnFunctionSig;
   }
-  
+
   function unlock(bytes rlpTxStack, uint[] txIndex, bytes rlpTransaction, bytes rlpRecStack, uint[] recIndex, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
-    //TODO: verify tx receipt    
+    //TODO: verify tx receipt
     if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, rlpReceipt)) {
         Log memory log = getReceiptDetails(rlpReceipt);
         if (log.etcAddr == 0) throw;
@@ -129,11 +129,24 @@ contract ETCLocking is SafeMath {
     RLP.RLPItem[] memory receipt = rlpReceipt.toRLPItem().toList();
     RLP.RLPItem[] memory logs = receipt[3].toList();
     RLP.RLPItem[] memory log = logs[0].toList();
+    RLP.RLPItem[] memory logValue = log[1].toList();
 
-    l.sender = log[0].toAddress();
-    l.etcAddr = log[1].toAddress();
-    l.value = log[2].toUint();
+    l.sender = logValue[0].toAddress();
+    l.etcAddr = logValue[1].toAddress();
+    l.value = logValue[2].toUint();
   }
+
+  //rlpTransaction is a value at the bottom of the transaction trie.
+  function returnAddFromReceipt(bytes rlpReceipt) constant returns (address) {
+    RLP.RLPItem[] memory receipt = rlpReceipt.toRLPItem().toList();
+    //RLP.RLPItem[] memory logs = receipt[3].toList();
+    //RLP.RLPItem[] memory log = logs[0].toList();
+    //RLP.RLPItem[] memory logValue = log[1].toList();
+
+    //return logValue[1].toAddress();
+    return address(0);
+  }
+
 
   //rlpTransaction is a value at the bottom of the transaction trie.
   function getTransactionDetails(bytes rlpTransaction) internal returns (Transaction memory tx) {
