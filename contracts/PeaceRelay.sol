@@ -103,7 +103,6 @@ contract PeaceRelay {
      if (hashOfNode != sha3(currNode)) {return false;}
      currNodeList = stack[i].toList();
      hashOfNode = currNodeList[indexes[i]].toBytes32();
-     if (i == 1) return true;
    }
   }
 
