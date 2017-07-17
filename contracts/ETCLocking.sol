@@ -51,29 +51,30 @@ contract ETCLocking is SafeMath {
   function unlock(bytes rlpTxStack, uint[] txIndex, bytes rlpTransaction, bytes rlpRecStack, uint[] recIndex, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
     //TODO: verify tx receipt    
     if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, rlpReceipt)) {
-        Log log = getReceiptDetails(rlpReceipt);
-        if (log.etcAddress == 0) throw;
+        Log memory log = getReceiptDetails(rlpReceipt);
+        if (log.etcAddr == 0) throw;
 
-      //formalize interface, then fix this
-      if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, rlpTransaction)) {
-          Transaction memory tx = getTransactionDetails(rlpTransaction);
-          bytes4 functionSig = getSig(tx.data);
+        //formalize interface, then fix this
+        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, rlpTransaction)) {
+            Transaction memory tx = getTransactionDetails(rlpTransaction);
+            bytes4 functionSig = getSig(tx.data);
 
-          assert (functionSig == BURN_FUNCTION_SIG);
-          assert (tx.to != etcTokenAddr);
-          assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
+            assert (functionSig == BURN_FUNCTION_SIG);
+            assert (tx.to != etcTokenAddr);
+            assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
 
-          address etcAddress = getAddress(tx.data);
-          uint etcValue = getValue(tx.data);
+            address etcAddress = getAddress(tx.data);
+            uint etcValue = getValue(tx.data);
 
-          totalSupply = safeSub(totalSupply, etcValue);
-          // use transfer instead of send
-          etcAddress.transfer(etcValue);
-          assert(totalSupply == this.balance);
-          Unlocked(etcAddress, etcValue);
-          return true;
-      }
-    return false;
+            totalSupply = safeSub(totalSupply, etcValue);
+            // use transfer instead of send
+            etcAddress.transfer(etcValue);
+            assert(totalSupply == this.balance);
+            Unlocked(etcAddress, etcValue);
+            return true;
+        }
+      return false;
+    }
   }
 
   function lock(address ethAddr) returns (bool success) {
@@ -124,7 +125,7 @@ contract ETCLocking is SafeMath {
 
 
   //rlpTransaction is a value at the bottom of the transaction trie.
-  function getReceiptDetails(bytes rlpReceipt) constant internal returns (Log memory l) {
+  function getReceiptDetails(bytes rlpReceipt) internal returns (Log memory l) {
     RLP.RLPItem[] memory receipt = rlpReceipt.toRLPItem().toList();
     RLP.RLPItem[] memory logs = receipt[3].toList();
     RLP.RLPItem[] memory log = logs[0].toList();
@@ -132,12 +133,10 @@ contract ETCLocking is SafeMath {
     l.sender = log[0].toAddress();
     l.etcAddr = log[1].toAddress();
     l.value = log[2].toUint();
-
-    return l;
   }
 
   //rlpTransaction is a value at the bottom of the transaction trie.
-  function getTransactionDetails(bytes rlpTransaction) constant internal returns (Transaction memory tx) {
+  function getTransactionDetails(bytes rlpTransaction) internal returns (Transaction memory tx) {
     var it = rlpTransaction.toRLPItem().iterator();
 
     uint idx = 0;

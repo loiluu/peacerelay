@@ -1,13 +1,12 @@
 pragma solidity ^0.4.8;
 
-import "./Ownable.sol";
 import "./SafeMath.sol";
 import "./ERC20.sol";
 import "./PeaceRelay.sol";
 import "./RLP.sol";
 
 
-contract ETCToken is ERC20, SafeMath, Ownable {
+contract ETCToken is ERC20, SafeMath {
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
   using RLP for bytes;
