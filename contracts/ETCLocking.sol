@@ -48,8 +48,8 @@ contract ETCLocking is SafeMath {
     BURN_FUNCTION_SIG = burnFunctionSig;
   }
 
-  function unlock(bytes rlpTxStack, uint[] txIndex, bytes txPrefix, bytes rlpTransaction, bytes rlpRecStack,
-                  uint[] recIndex, bytes recPrefix, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
+  function unlock(bytes32 blockHash, bytes rlpTxStack, uint[] txIndex, bytes txPrefix, bytes rlpTransaction,
+                  bytes rlpRecStack, uint[] recIndex, bytes recPrefix, bytes rlpReceipt) returns (bool success) {
     if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, txPrefix, rlpReceipt)) {
         Log memory log = getReceiptDetails(rlpReceipt);
 
