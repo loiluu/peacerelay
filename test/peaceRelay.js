@@ -47,23 +47,37 @@ function checkReceipt(peaceRelay, txData, shouldPass) {
   })
 }
 
-/*
+
 function doMint(txData) {
   return new Promise((resolve, reject) => {
     var peaceRelay
     var etcToken
+    var addressLockedAt = "0xb13f6f423781bd1934fc8599782f5e161ce7c816"
+    var addMintedFor = "0x000000000000000000000000c198eccab3fe1f35e9160b48eb18af7934a13262"
+    var amountMinted = "0x000000000000000000000000000000000000000000000000002386f26fc10000"
     return PeaceRelay.new().then(instance => {
       peaceRelay = instance
       return ETCToken.new(peaceRelay.address)
-    })
-    return peaceRelay.submitBlock(txData.blockhash, txData.header).then(() => {
-      return peaceRelay.checkReceiptProof.call(txData.blockhash, txData.stack, txData.path, txData.prefix, txData.value)
+    }).then(instance => {
+      etcToken = instance
+      return etcToken.setETCLockingAddr(addressLockedAt)
+    }).then(() => {
+      return peaceRelay.submitBlock(txData.blockhash, txData.header)
+    }).then(() => {
+      return peaceRelay.getTxRoot(txData.blockhash)
+    }).then(root => {
+      assert.equal(root, txData.txRoot, "Should be correct root")
+      return peaceRelay.checkTxProof.call(txData.blockhash, txData.stack, txData.path, txData.prefix, txData.value)
     }).then(res => {
-      assert.equal(res, shouldPass, "Should have returned " + shouldPass)
+      assert.isTrue(res, "should be valid")
+      return etcToken.mint(txData.blockhash, txData.stack, txData.path, txData.prefix, txData.value)
+    }).then(tx => {
+      assert.equal(tx.receipt.logs[0].data, amountMinted, "Should have given user correct amt")
+      assert.equal(tx.receipt.logs[0].topics[1], addMintedFor, "should have given to correct person")
       resolve()
     })
   })
-} */
+}
 
 
 contract('PeaceRelay', function(accounts) {
@@ -86,56 +100,8 @@ contract('PeaceRelay', function(accounts) {
 
   describe("transaction verification", function () {
 
-
-    /*it("Test here", function () {
-      return PeaceRelay.new().then(instance => {
-        peaceRelay = instance
-        return peaceRelay.test.call(tx1.value).then(res => {
-          console.log(res)
-        })
-      })
-    }) */
-
-    it("Tx parsing", function () {
-      var peaceRelay
-      var etcLock
-      var etcToken
-      return ETCLocking.new().then(instance => {
-        etcLock = instance
-        /*
-        return PeaceRelay.new()
-      }).then(instance => {
-        peaceRelay = instance
-        return checkTransaction(peaceRelay, firstRealTx, true)
-      }).then(() => {
-        return etcLock.testGetTransactionDetails.call(firstRealTx.value)
-      }).then(res => {
-        console.log("Lock Parsed:", res[3]);
-        return etcLock.getSig(res[3])
-      }).then(sig => {
-        assert.equal(sig, "0xf435f5a7", "should have lock signature")
-        return etcLock.testGetReceiptDetails.call(burnTransactionReceipt.value)
-      }).then(res => {
-        console.log("Burn Receipt Parsed:", res) */
-        return PeaceRelay.new()
-      }).then(instance => {
-        peaceRelay = instance
-        return checkTransaction(peaceRelay, firstRealTx, true)
-      }).then(() => {
-        return ETCToken.new()
-      }).then(instance => {
-        etcToken = instance
-        return etcToken.testGetTransactionDetails(firstRealTx.value)
-      }).then(res => {
-        console.log("Lock Parsed", res)
-        return etcToken.getAddress(res[3])
-      }).then(add => {
-        console.log(add)
-        return etcToken.testGetTransactionDetails(firstRealTx.value)
-      }).then(res => {
-        return etcToken.getSig(res[3])
-      }).then(sig => {
-        assert.equal(sig, "0xf435f5a7", "should have lock signature")
+    it('should do mint', function () {
+      return doMint(firstRealTx).then(() => {
       })
     })
 
@@ -176,8 +142,6 @@ contract('PeaceRelay', function(accounts) {
         return checkReceipt(peaceRelay, r2, true)
       }).then(() => {
         return checkReceipt(peaceRelay, r3, true)
-      //}).then(() => {
-      //  return checkReceipt(peaceRelay, rWithLog, true)
       })
     })
 
@@ -192,17 +156,6 @@ contract('PeaceRelay', function(accounts) {
       })
     })
   })
-  /* Removed function for now.
-  it('should allow verification', function () {
-    var locking
-    return ETCLocking.new().then(instance => {
-      locking = instance
-      return locking.returnAddFromReceipt.call(rWithLog.value)
-    }).then(add => {
-      console.log(add)
-    })
-  }) */
-
 })
 
 
