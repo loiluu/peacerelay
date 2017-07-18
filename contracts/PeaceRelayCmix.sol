@@ -11,7 +11,7 @@ contract PeaceRelay {
   mapping (bytes32 => BlockHeader) blocks;
   mapping (bytes32 => Transaction) transactions;
 
-  Ethash ethash;
+  Ethash public ethash;
 
   struct BlockHeader {
     uint      prevBlockHash;// 0
@@ -23,6 +23,10 @@ contract PeaceRelay {
 
   struct Transaction {
     //data
+  }
+
+  function PeaceRelay(address _ethash) {
+    ethash = Ethash(_ethash);
   }
 
   //For now, just assume all blocks are good + valid.
@@ -37,7 +41,8 @@ contract PeaceRelay {
         uint ethashResult;
         s = ethash.computeS(uint(sha3(rlpHeader)), uint(nonceLe));
         ethashResult = ethash.computeSha3(s, cmix);
-        if (ethashResult > ((2 ** 256 - 1) / targetDifficulty)) throw;
+        // if (ethashResult > ((2 ** 256 - 1) / targetDifficulty)) throw;
+        if (ethashResult > ((2 ** 256 - 1) / 1)) throw;
 
         blocks[blockHash] = header;
     }

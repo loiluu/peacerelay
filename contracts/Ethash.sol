@@ -219,13 +219,13 @@ contract SHA3_512 {
 
 contract Ethash is SHA3_512 {
     
-    mapping(address=>bool) public owners;
+    // mapping(address=>bool) public owners;
     
-    function Ethash(address[3] _owners) {
-        owners[_owners[0]] = true;
-        owners[_owners[1]] = true;
-        owners[_owners[2]] = true;                
-    }
+    // function Ethash(address[3] _owners) {
+    //     owners[_owners[0]] = true;
+    //     owners[_owners[1]] = true;
+    //     owners[_owners[2]] = true;                
+    // }
      
     function fnv( uint v1, uint v2 ) constant internal returns(uint) {
         return ((v1*0x01000193) ^ v2) & 0xFFFFFFFF;
@@ -427,11 +427,11 @@ contract Ethash is SHA3_512 {
                            uint start,
                            uint numElems ) {
 
-        if( ! owners[msg.sender] ) {
-            //ErrorLog( "setEpochData: only owner can set data", uint(msg.sender) );
-            SetEpochData( msg.sender, 0x82000000, uint(msg.sender) );
-            return;        
-        }                           
+        // if( ! owners[msg.sender] ) {
+        //     //ErrorLog( "setEpochData: only owner can set data", uint(msg.sender) );
+        //     SetEpochData( msg.sender, 0x82000000, uint(msg.sender) );
+        //     return;        
+        // }                           
                            
         for( uint i = 0 ; i < numElems ; i++ ) {
             if( epochData[epoch].merkleNodes[start+i] > 0 ) {
