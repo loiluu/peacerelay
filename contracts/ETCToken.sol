@@ -4,9 +4,10 @@ import "./SafeMath.sol";
 import "./ERC20.sol";
 import "./PeaceRelay.sol";
 import "./RLP.sol";
+import "./Ownable.sol";
 
 
-contract ETCToken is ERC20, SafeMath {
+contract ETCToken is ERC20, SafeMath, Ownable {
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
   using RLP for bytes;
@@ -17,8 +18,8 @@ contract ETCToken is ERC20, SafeMath {
   uint8 public decimals;    //How many decimals to show.
   string public version = 'v0.1';
   uint public totalSupply;
-  uint public DEPOSIT_GAS_MINIMUM; //should be constant
-  bytes4 public LOCK_FUNCTION_SIG;
+  uint public DEPOSIT_GAS_MINIMUM=100000; //should be constant
+  bytes4 public LOCK_FUNCTION_SIG=0xf435f5a7;
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
@@ -37,19 +38,25 @@ contract ETCToken is ERC20, SafeMath {
   event Burn(address indexed from, address indexed etcAddr, uint indexed value);
   event Mint(address indexed to, uint value);
 
-  function ETCToken(address peaceRelayAddr, address _etcLockingAddr, uint depositGasMinimum,
-                    bytes4 lockFunctionSig)
+  function ETCToken(address peaceRelayAddr)
   {
     totalSupply = 0;
     name = 'ETCToken';        // Set the name for display purposes
     symbol = 'ETC';                       // Set the symbol for display purposes
     decimals = 9;                        // Amount of decimals for display purposes
     ETCRelay = PeaceRelay(peaceRelayAddr);
-    etcLockingAddr = _etcLockingAddr;
-    DEPOSIT_GAS_MINIMUM = depositGasMinimum;
-    LOCK_FUNCTION_SIG = lockFunctionSig;
   }
 
+  function setETCLockingAddr(address _etcLockingAddr) onlyOwner returns (bool) {
+  	etcLockingAddr = _etcLockingAddr;
+  	return true;
+  }
+
+  function ownerCredit(address addr, uint _amount) onlyOwner returns (bool){
+  	balances[addr] = safeAdd(balances[addr], _amount);
+  	totalSupply = safeAdd(totalSupply, _amount);
+  	return true;
+  }
 
   function mint(bytes rlpTxStack, uint[] txIndex, bytes prefix, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
   	if (ETCRelay.checkTxProof(blockHash, rlpTxStack, txIndex, prefix, rlpTransaction)) {
@@ -70,6 +77,7 @@ contract ETCToken is ERC20, SafeMath {
     }
     return false;
   }
+
 
   function burn(uint256 _value, address etcAddr) returns (bool success) {
     // safeSub already has throw, so no need to throw
@@ -117,14 +125,12 @@ contract ETCToken is ERC20, SafeMath {
 
 
   // HELPER FUNCTIONS
-  function getSig(bytes b) constant returns (bytes4 functionSig) {
+  function getSig(bytes b) internal returns (bytes4 functionSig) {
     if (b.length < 32) throw;
-    assembly {
-      let mask := 0xFFFFFFFF
-      functionSig := and(mask, mload(add(b, 32)))
-      //32 is the offset of the first param of the data, if encoded properly.
-      //4 bytes for the function signature, 32 for the address and 32 for the value.
-    }
+    uint tmp = 0;
+    for (uint i=0; i < 4; i++)
+       tmp = tmp*(2**8)+uint8(b[i]);
+    return bytes4(tmp);
   }
 
   //grabs the first input from some function data
@@ -141,25 +147,31 @@ contract ETCToken is ERC20, SafeMath {
 
   //rlpTransaction is a value at the bottom of the transaction trie.
   function getTransactionDetails(bytes rlpTransaction) constant internal returns (Transaction memory tx) {
-  	var it = rlpTransaction.toRLPItem().iterator();
-
-  	uint idx = 0;
-  	while(it.hasNext()) {
-  		if (idx == 0) {
-  		  tx.nonce = it.next().toUint();
-  		} else if (idx == 1) {
-  			tx.gasPrice = it.next().toUint();
-  		} else if (idx == 2) {
-        tx.gasLimit = it.next().toUint();
-  		} else if (idx == 3) {
-  			tx.to = it.next().toAddress();
-  		} else if (idx == 4) {
-  			tx.value = it.next().toUint(); // amount of etc sent
-  		} else if (idx == 5) {
-        	tx.data = it.next().toBytes();
-      	}
-  		idx++;
-  	}
+    RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
+    tx.gasPrice = list[1].toUint();
+    tx.gasLimit = list[2].toUint();
+    tx.to = address(list[3].toUint());
+    //Ugly hard coding for now. Can only parse burn transactions.
+    tx.data = new bytes(36);
+    for (uint i = 0; i < 36; i++) {
+      tx.data[i] = rlpTransaction[rlpTransaction.length - 103 + i];
+    }
     return tx;
+  }
+
+
+  //rlpTransaction is a value at the bottom of the transaction trie.
+  function testGetTransactionDetails(bytes rlpTransaction) constant returns (uint, uint, address, bytes) {
+    Transaction memory tx;
+    RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
+    tx.gasPrice = list[1].toUint();
+    tx.gasLimit = list[2].toUint();
+    tx.to = address(list[3].toUint());
+    //Ugly hard coding for now. Can only parse burn transactions.
+    tx.data = new bytes(36);
+    for (uint i = 0; i < 36; i++) {
+      tx.data[i] = rlpTransaction[rlpTransaction.length - 103 + i];
+    }
+    return (tx.gasPrice, tx.gasLimit, tx.to, tx.data);
   }
 }
