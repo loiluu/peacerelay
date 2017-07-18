@@ -163,7 +163,6 @@ contract('PeaceRelay', function(accounts) {
         return checkReceipt(peaceRelay, r2, false)
       })
     })
-  })
   /* Removed function for now.
   it('should allow verification', function () {
     var locking
