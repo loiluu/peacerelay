@@ -38,14 +38,13 @@ contract ETCToken is ERC20, SafeMath, Ownable {
   event Burn(address indexed from, address indexed etcAddr, uint indexed value);
   event Mint(address indexed to, uint value);
 
-  function ETCToken(address peaceRelayAddr, uint depositGasMinimum)
+  function ETCToken(address peaceRelayAddr)
   {
     totalSupply = 0;
     name = 'ETCToken';        // Set the name for display purposes
     symbol = 'ETC';                       // Set the symbol for display purposes
     decimals = 9;                        // Amount of decimals for display purposes
     ETCRelay = PeaceRelay(peaceRelayAddr);
-    DEPOSIT_GAS_MINIMUM = depositGasMinimum;
   }
 
   function setETCLockingAddr(address _etcLockingAddr) onlyOwner returns (bool) {
