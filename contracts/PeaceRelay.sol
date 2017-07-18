@@ -4,33 +4,30 @@ import "./RLP.sol";
 import "./Ethash.sol";
 
 contract PeaceRelay {
-    using RLP for RLP.RLPItem;
-    using RLP for RLP.Iterator;
-    using RLP for bytes;
+  using RLP for RLP.RLPItem;
+  using RLP for RLP.Iterator;
+  using RLP for bytes;
 
-    mapping(bytes32 => BlockHeader) blocks;
-    mapping(bytes32 => Transaction) transactions;
-    
-    Ethash ethash;
-    
-    struct BlockHeader {
-        uint prevBlockHash; // 0
-        bytes32 stateRoot; // 3
-        bytes32 txRoot; // 4
-        bytes32 receiptRoot; // 5
-    }
+  mapping (bytes32 => BlockHeader) blocks;
+  mapping (bytes32 => Transaction) transactions;
 
-    struct Transaction {
-        //data
-    }
+  Ethash ethash;
 
-    function PeaceRelay(address _ethash) {
-        ethash = Ethash(_ethash); //ethash contract
-    }
+  struct BlockHeader {
+    uint      prevBlockHash;// 0
+    bytes32   stateRoot;    // 3
+    bytes32   txRoot;       // 4
+    bytes32   receiptRoot;  // 5
+    //Maybe store total difficulty up to this point here.
+  }
 
-    //For now, just assume all blocks are good + valid.
-    //In the future, will use SmartPool's verification.
-    function submitBlock(bytes rlpHeader, bytes32 blockHash, uint[8] cmix) {
+  struct Transaction {
+    //data
+  }
+
+  //For now, just assume all blocks are good + valid.
+  //In the future, will use SmartPool's verification.
+  function submitBlock(bytes rlpHeader, bytes32 blockHash, uint[8] cmix) {
         BlockHeader memory header;
         bytes8 nonceLe;
         uint targetDifficulty;
@@ -45,56 +42,39 @@ contract PeaceRelay {
         blocks[blockHash] = header;
     }
 
-    // function computeS(bytes rlpHeader, bytes8 nonce, uint[8] cmix) constant returns(uint) {
-    //     uint[16] memory s;
-    //     // uint ethashResult;
-    //     s = ethash.computeS(uint(sha3(rlpHeader)), uint(nonce));
-    //     return ethash.computeSha3(s, cmix);
-    // }
+  //This function probably does not work as-is
+  function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes statePrefix, bytes rlpState) constant returns (bool) {
+   bytes32 stateRoot = blocks[blockHash].stateRoot;
+   if (checkProof(stateRoot, rlpStack, indexes, statePrefix, rlpState)) {
+     return true;
+   } else {
+     return false;
+   }
+  }
 
-    // function prs(bytes rlpHeader) constant returns(bytes8, uint) {
-    //     BlockHeader memory header;
-    //     bytes8 nonce;
-    //     uint targetDifficulty;
-    //     (header, nonce, targetDifficulty) = parseBlockHeader(rlpHeader);
-    //     return (nonce, targetDifficulty);
-    // }
-
-    //This function probably does not work as-is
-    function checkStateProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpState) constant returns(bool) {
-        bytes32 stateRoot = blocks[blockHash].stateRoot;
-        if (checkProof(stateRoot, rlpStack, indexes, rlpState)) {
-            return true;
-        } else {
-            return false;
-        }
+  function checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes transactionPrefix, bytes rlpTransaction) constant returns (bool) {
+    bytes32 txRoot = blocks[blockHash].txRoot;
+    if (checkProof(txRoot, rlpStack, indexes, transactionPrefix, rlpTransaction)) {
+      return true;
+    } else {
+      return false;
     }
+  }
 
-    function checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction) returns(bool) {
-        bytes32 txRoot = blocks[blockHash].txRoot;
-        if (checkProof(txRoot, rlpStack, indexes, rlpTransaction)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+  function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes receiptPrefix, bytes rlpReceipt) constant returns (bool) {
+   bytes32 receiptRoot = blocks[blockHash].receiptRoot;
+   if (checkProof(receiptRoot, rlpStack, indexes, receiptPrefix, rlpReceipt)) {
+     return true;
+   } else {
+     return false;
+   }
+  }
 
-    function checkReceiptProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpReceipt) constant returns(bool) {
-        bytes32 receiptRoot = blocks[blockHash].receiptRoot;
-        if (checkProof(receiptRoot, rlpStack, indexes, rlpReceipt)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    // HELPER FUNCTIONS
-
-    function parseBlockHeader(bytes rlpHeader) constant internal returns(BlockHeader, bytes8, uint) {
+  function parseBlockHeader(bytes rlpHeader) constant internal returns(BlockHeader, bytes8, uint) {
         BlockHeader memory header;
         var it = rlpHeader.toRLPItem().iterator();
 
-        bytes8 nonceLe;
+        bytes8 nonce;
         uint idx;
         uint difficulty;
         while (it.hasNext()) {
@@ -108,83 +88,84 @@ contract PeaceRelay {
                 header.receiptRoot = bytes32(it.next().toUint());
             } else if (idx == 7) {
                 difficulty = it.next().toUint();
-            } else if (idx == 14) { // need to find out which one is nonce
-                // extract nonce from header
-                nonceLe = bytes8(uint64(it.next().toUint()));
+            } else if (idx == 14) {
+                nonce = bytes8(uint64(it.next().toUint()));
             }
             else {
                 it.next();
             }
             idx++;
         }
-        return (header, nonceLe, difficulty);
+        return (header, nonce, difficulty);
     }
 
-    function getStackLength(bytes rlpProof) constant returns(uint) {
-        RLP.RLPItem[] memory stack = rlpProof.toRLPItem().toList();
-        return stack.length;
-    }
+  function checkProof(bytes32 rootHash, bytes rlpStack, uint[] indexes, bytes valuePrefix, bytes rlpValue) constant returns (bool) {
+   RLP.RLPItem[] memory stack = rlpStack.toRLPItem().toList();
+   bytes32 hashOfNode = rootHash;
+   bytes memory currNode;
+   RLP.RLPItem[] memory currNodeList;
 
-    function checkProof(bytes32 rootHash, bytes rlpStack, uint[] indexes, bytes rlpValue) constant returns(bool) {
-        RLP.RLPItem[] memory stack = rlpStack.toRLPItem().toList();
-        bytes32 hashOfNode = rootHash;
-        bytes memory currNode;
-        RLP.RLPItem[] memory currNodeList;
+   for (uint i = 0; i < stack.length; i++) {
+     if (i == stack.length - 1) {
+       currNode = stack[i].toBytes();
+       if (hashOfNode != sha3(currNode)) {return false;}
+       currNodeList = stack[i].toList();
+       RLP.RLPItem memory value = currNodeList[currNodeList.length - 1];
+       if (sha3(valuePrefix, rlpValue) == sha3(value.toBytes())) {
+         return true;
+       } else {
+         return false;
+       }
+     }
+     currNode = stack[i].toBytes();
+     if (hashOfNode != sha3(currNode)) {return false;}
+     currNodeList = stack[i].toList();
+     hashOfNode = currNodeList[indexes[i]].toBytes32();
+   }
+  }
 
-        for (uint i = 0; i < stack.length; i++) {
-            if (i == stack.length - 1) {
-                currNode = stack[i].toBytes();
-                if (hashOfNode != sha3(currNode)) {
-                    return false;
-                }
-                currNodeList = stack[i].toList();
-                RLP.RLPItem memory value = currNodeList[currNodeList.length - 1];
-                if (sha3(rlpValue) == sha3(value.toBytes())) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-            currNode = stack[i].toBytes();
-            if (hashOfNode != sha3(currNode)) {
-                return false;
-            }
-            currNodeList = stack[i].toList();
-            hashOfNode = currNodeList[indexes[i]].toBytes32();
-            if (i == 1) return true;
-        }
-    }
+  function getStateRoot(bytes32 blockHash) constant returns (bytes32) {
+    return blocks[blockHash].stateRoot;
+  }
 
-    function parseTransaction(bytes rlpTransaction) constant internal returns(Transaction) {
-        Transaction memory transaction;
-        var it = rlpTransaction.toRLPItem().iterator();
+  function getTxRoot(bytes32 blockHash) constant returns (bytes32) {
+    return blocks[blockHash].txRoot;
+  }
 
-        uint idx;
-        while (it.hasNext() && idx < 5) {
-            /*
+  function getReceiptRoot(bytes32 blockHash) constant returns (bytes32) {
+    return blocks[blockHash].receiptRoot;
+  }
 
-            HAVE TO FIGURE OUT INDEXS OF STUFF IN TRANSACTION
+  function test(bytes rlpValue) constant returns (bytes) {
+    return rlpValue.toRLPItem().toBytes();
+  }
 
-            if (idx == 0) {
-               header.prevBlockHash = it.next().toUint();
-            } else if (idx == 4) {
-               header.txRoot = bytes32(it.next().toUint());
-            }
-            idx++;
-            */
-        }
-        return transaction;
-    }
+  //rlpTransaction is a value at the bottom of the transaction trie. This, however,
+  //has the first few bytes chopped off.
+  function getTransactionDetails(bytes rlpTransaction) constant returns (uint) {
+  	RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
+    return list[2].toUint();
+    /*
+    uint idx = 0;
+  	while(it.hasNext()) {
+  		if (idx == 0) {
+  		  tx.nonce = it.next().toUint();
+  		} else if (idx == 1) {
+  			tx.gasPrice = it.next().toUint();
+  		} else if (idx == 2) {
+        tx.gasLimit = it.next().toUint();
+  		} else if (idx == 3) {
+  			tx.to = it.next().toAddress();
+  		} else if (idx == 4) {
+  			tx.value = it.next().toUint(); // amount of etc sent
+  		} else if (idx == 5) {
+        	tx.data = it.next().toBytes();
+      	}
+  		idx++;
+  	}
+    return tx;
+    */
 
-    function getStateRoot(bytes32 blockHash) constant returns(bytes32) {
-        return blocks[blockHash].stateRoot;
-    }
+  }
 
-    function getTxRoot(bytes32 blockHash) constant returns(bytes32) {
-        return blocks[blockHash].txRoot;
-    }
-
-    function getReceiptRoot(bytes32 blockHash) constant returns(bytes32) {
-        return blocks[blockHash].receiptRoot;
-    }
 }

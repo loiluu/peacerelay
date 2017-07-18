@@ -1,14 +1,12 @@
 pragma solidity ^0.4.8;
 
-import "./Ownable.sol";
 import "./SafeMath.sol";
 import "./ERC20.sol";
 import "./PeaceRelay.sol";
 import "./RLP.sol";
 
 
-contract ETCToken is ERC20, SafeMath, Ownable {
-
+contract ETCToken is ERC20, SafeMath {
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
   using RLP for bytes;
@@ -36,9 +34,8 @@ contract ETCToken is ERC20, SafeMath, Ownable {
     bytes data;
   }
 
-  event Burn(address indexed from, address indexed etcAddr, uint value);
+  event Burn(address indexed from, address indexed etcAddr, uint indexed value);
   event Mint(address indexed to, uint value);
-
 
   function ETCToken(address peaceRelayAddr, address _etcLockingAddr, uint depositGasMinimum,
                     bytes4 lockFunctionSig)
@@ -54,38 +51,36 @@ contract ETCToken is ERC20, SafeMath, Ownable {
   }
 
 
-  function mint(bytes rlpProof, bytes rlpPath, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
-    if (true) {
-    //formalize interface, then fix this
-    //if (ETCRelay.checkTxProof(blockHash, rlpProof, rlpPath, rlpTransaction, )) {
-    //  checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction)
-    Transaction memory tx = getTransactionDetails(rlpTransaction);
-	bytes4 functionSig = getSig(tx.data);
+  function mint(bytes rlpTxStack, uint[] txIndex, bytes prefix, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
+  	if (ETCRelay.checkTxProof(blockHash, rlpTxStack, txIndex, prefix, rlpTransaction)) {
+      //  checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction)
+      Transaction memory tx = getTransactionDetails(rlpTransaction);
+      bytes4 functionSig = getSig(tx.data);
 
-	if (functionSig != LOCK_FUNCTION_SIG) throw;
-	if (tx.to != etcLockingAddr) throw;
-	if (tx.gasLimit < DEPOSIT_GAS_MINIMUM) throw;
+      if (functionSig != LOCK_FUNCTION_SIG) throw;
+      if (tx.to != etcLockingAddr) throw;
+      if (tx.gasLimit < DEPOSIT_GAS_MINIMUM) throw;
 
-	address newAddress = getAddress(tx.data);
+      address newAddress = getAddress(tx.data);
 
-	totalSupply = safeAdd(totalSupply, tx.value);
-	balances[newAddress] = safeAdd(balances[newAddress], tx.value);
-	Mint(newAddress, tx.value);
-	return true;
-	}
+      totalSupply = safeAdd(totalSupply, tx.value);
+      balances[newAddress] = safeAdd(balances[newAddress], tx.value);
+      Mint(newAddress, tx.value);
+      return true;
+    }
     return false;
   }
 
   function burn(uint256 _value, address etcAddr) returns (bool success) {
-  	// safeSub already has throw, so no need to throw
-  	balances[msg.sender] = safeSub(balances[msg.sender], _value) ;
-  	totalSupply = safeSub(totalSupply, _value);
-  	Burn(msg.sender, etcAddr, _value);
-  	return true;
+    // safeSub already has throw, so no need to throw
+    balances[msg.sender] = safeSub(balances[msg.sender], _value) ;
+    totalSupply = safeSub(totalSupply, _value);
+    Burn(msg.sender, etcAddr, _value);
+    return true;
   }
 
   function transfer(address _to, uint _value) returns (bool success) {
-  	// safeSub already has throw, so no need to throw
+    // safeSub already has throw, so no need to throw
     balances[msg.sender] = safeSub(balances[msg.sender], _value);
     balances[_to] = safeAdd(balances[_to], _value);
     Transfer(msg.sender, _to, _value);
@@ -121,17 +116,14 @@ contract ETCToken is ERC20, SafeMath, Ownable {
 	function () {}
 
 
-
   // HELPER FUNCTIONS
-
-
   function getSig(bytes b) constant returns (bytes4 functionSig) {
     if (b.length < 32) throw;
     assembly {
-        let mask := 0xFFFFFFFF
-        functionSig := and(mask, mload(add(b, 32)))
-        //32 is the offset of the first param of the data, if encoded properly.
-        //4 bytes for the function signature, 32 for the address and 32 for the value.
+      let mask := 0xFFFFFFFF
+      functionSig := and(mask, mload(add(b, 32)))
+      //32 is the offset of the first param of the data, if encoded properly.
+      //4 bytes for the function signature, 32 for the address and 32 for the value.
     }
   }
 
@@ -140,10 +132,10 @@ contract ETCToken is ERC20, SafeMath, Ownable {
   function getAddress(bytes b) constant returns (address a) {
     if (b.length < 36) return address(0);
     assembly {
-        let mask := 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-        a := and(mask, mload(add(b, 36)))
-        //36 is the offset of the first param of the data, if encoded properly.
-        //4 bytes for the function signature, and 32 for the address.
+      let mask := 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      a := and(mask, mload(add(b, 36)))
+      //36 is the offset of the first param of the data, if encoded properly.
+      //4 bytes for the function signature, and 32 for the address.
     }
   }
 
