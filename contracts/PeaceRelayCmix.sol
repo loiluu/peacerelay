@@ -3,7 +3,7 @@ pragma solidity ^0.4.11;
 import "./RLP.sol";
 import "./Ethash.sol";
 
-contract PeaceRelay {
+contract PeaceRelayCmix {
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
   using RLP for bytes;
@@ -25,7 +25,7 @@ contract PeaceRelay {
     //data
   }
 
-  function PeaceRelay(address _ethash) {
+  function PeaceRelayCmix(address _ethash) {
     ethash = Ethash(_ethash);
   }
 

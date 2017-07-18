@@ -2,9 +2,9 @@ var PeaceRelay = artifacts.require("./PeaceRelay.sol");
 var ETCLocking = artifacts.require("./ETCLocking.sol");
 var ETCToken = artifacts.require("./ETCToken.sol");
 
-EthProof  = require('../merkle-patricia-proof/lib/ethProof.js')
-EthVerify = require('../merkle-patricia-proof/lib/ethVerify.js')
-ethProof = new EthProof(new Web3.providers.HttpProvider("https://mainnet.infura.io"))
+// EthProof  = require('../merkle-patricia-proof/lib/ethProof.js')
+// EthVerify = require('../merkle-patricia-proof/lib/ethVerify.js')
+// ethProof = new EthProof(new Web3.providers.HttpProvider("https://mainnet.infura.io"))
 
 
 
@@ -163,7 +163,6 @@ contract('PeaceRelay', function(accounts) {
         return checkReceipt(peaceRelay, r2, false)
       })
     })
-  })
   /* Removed function for now.
   it('should allow verification', function () {
     var locking
