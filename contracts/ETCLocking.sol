@@ -68,7 +68,6 @@ contract ETCLocking is SafeMath {
   }
 
   function lock(address ethAddr) payable returns (bool success) {
-    // safeAdd already has throw, so no need to throw
     // Note: This will never throw, as there is a max amount of tokens on a chain
     totalSupply = safeAdd(totalSupply, msg.value);
     Locked(msg.sender, ethAddr, msg.value);
@@ -121,7 +120,7 @@ contract ETCLocking is SafeMath {
     //Ugly hard coding for now. Can only parse burn transactions.
     tx.data = new bytes(68);
     for (uint i = 0; i < 68; i++) {
-      tx.data[i] = rlpTransaction[rlpTransaction.length - 68 + i];
+      tx.data[i] = rlpTransaction[rlpTransaction.length - 135 + i];
     }
     return tx;
   }
