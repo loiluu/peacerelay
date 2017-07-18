@@ -97,14 +97,16 @@ contract('PeaceRelay', function(accounts) {
         assert.equal(sig, "0xfcd3533c", "should have burn signature")
         return etcLock.testGetReceiptDetails.call(burnTransactionReceipt.value)
       }).then(res => {
-        console.log("Receipt Parsed:", res)
+        console.log("Burn Receipt Parsed:", res)
         return ETCToken.new()
       }).then(instance => {
         etcToken = instance
-        return etcToken.testGetTransactionDetails(lockTransaction)
+        return etcToken.testGetTransactionDetails(lockTransaction.value)
       }).then(res => {
-        console.log("Lock Parsed", )
-      })
+        console.log("Lock Parsed", res)
+        return etcToken.getAddress(res[3])
+      }).then(add => {
+        console.log(add)
       })
     })
 
@@ -158,15 +160,6 @@ contract('PeaceRelay', function(accounts) {
         return checkReceipt(peaceRelay, r1, false)
       }).then(() => {
         return checkReceipt(peaceRelay, r2, false)
-      })
-    })
-
-    it("Receipt parsing", function () {
-      return ETCLocking.new().then(instance => {
-        etcLock = instance
-        return etcLock.getReceiptDetails.call(rWithLog.value).then(res => {
-          console.log(res)
-        })
       })
     })
   })

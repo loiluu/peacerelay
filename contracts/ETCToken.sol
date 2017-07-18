@@ -136,7 +136,7 @@ contract ETCToken is ERC20, SafeMath, Ownable {
 
   //grabs the first input from some function data
   //and implies that it is an address
-  function getAddress(bytes b) internal returns (address a) {
+  function getAddress(bytes b) constant returns (address a) {
     if (b.length < 36) return address(0);
     assembly {
       let mask := 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
