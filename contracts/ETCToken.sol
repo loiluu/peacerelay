@@ -34,7 +34,7 @@ contract ETCToken is ERC20, SafeMath {
     bytes data;
   }
 
-  event Burn(address indexed from, address indexed etcAddr, uint value);
+  event Burn(address indexed from, address indexed etcAddr, uint indexed value);
   event Mint(address indexed to, uint value);
 
   function ETCToken(address peaceRelayAddr, address _etcLockingAddr, uint depositGasMinimum,

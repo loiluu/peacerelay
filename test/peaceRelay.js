@@ -116,7 +116,8 @@ contract('PeaceRelay', function(accounts) {
         return checkReceipt(peaceRelay, r2, false)
       })
     })
-  })
+  })\
+  /* Removed function for now. 
   it('should allow verification', function () {
     var locking
     return ETCLocking.new().then(instance => {
@@ -125,7 +126,7 @@ contract('PeaceRelay', function(accounts) {
     }).then(add => {
       console.log(add)
     })
-  })
+  }) */
 
 })
 

@@ -131,20 +131,9 @@ contract ETCLocking is SafeMath {
     RLP.RLPItem[] memory log = logs[0].toList();
     RLP.RLPItem[] memory logValue = log[1].toList();
 
-    l.sender = logValue[0].toAddress();
-    l.etcAddr = logValue[1].toAddress();
-    l.value = logValue[2].toUint();
-  }
-
-  //rlpTransaction is a value at the bottom of the transaction trie.
-  function returnAddFromReceipt(bytes rlpReceipt) constant returns (address) {
-    RLP.RLPItem[] memory receipt = rlpReceipt.toRLPItem().toList();
-    //RLP.RLPItem[] memory logs = receipt[3].toList();
-    //RLP.RLPItem[] memory log = logs[0].toList();
-    //RLP.RLPItem[] memory logValue = log[1].toList();
-
-    //return logValue[1].toAddress();
-    return address(0);
+    l.sender = address(logValue[1].toUint());
+    l.etcAddr = address(logValue[2].toUint());
+    l.value = logValue[3].toUint();
   }
 
 
