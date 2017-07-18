@@ -128,12 +128,16 @@ contract ETCToken is ERC20, SafeMath, Ownable {
   // HELPER FUNCTIONS
   function getSig(bytes b) internal returns (bytes4 functionSig) {
     if (b.length < 32) throw;
-    assembly {
-      let mask := 0xFFFFFFFF
-      functionSig := and(mask, mload(add(b, 32)))
-      //32 is the offset of the first param of the data, if encoded properly.
-      //4 bytes for the function signature, 32 for the address and 32 for the value.
-    }
+    // assembly {
+    //   let mask := 0xFFFFFFFF
+    //   functionSig := and(mask, mload(add(b, 32)))
+    //   //32 is the offset of the first param of the data, if encoded properly.
+    //   //4 bytes for the function signature, 32 for the address and 32 for the value.
+    // }
+    uint tmp = 0;
+    for (uint i=0; i < 4; i++)
+    	tmp = tmp*(2**8)+uint8(b[i]);
+	return bytes4(tmp);    
   }
 
   //grabs the first input from some function data
@@ -150,25 +154,31 @@ contract ETCToken is ERC20, SafeMath, Ownable {
 
   //rlpTransaction is a value at the bottom of the transaction trie.
   function getTransactionDetails(bytes rlpTransaction) constant internal returns (Transaction memory tx) {
-  	var it = rlpTransaction.toRLPItem().iterator();
-
-  	uint idx = 0;
-  	while(it.hasNext()) {
-  		if (idx == 0) {
-  		  tx.nonce = it.next().toUint();
-  		} else if (idx == 1) {
-  			tx.gasPrice = it.next().toUint();
-  		} else if (idx == 2) {
-        tx.gasLimit = it.next().toUint();
-  		} else if (idx == 3) {
-  			tx.to = it.next().toAddress();
-  		} else if (idx == 4) {
-  			tx.value = it.next().toUint(); // amount of etc sent
-  		} else if (idx == 5) {
-        	tx.data = it.next().toBytes();
-      	}
-  		idx++;
-  	}
+    RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
+    tx.gasPrice = list[1].toUint();
+    tx.gasLimit = list[2].toUint();
+    tx.to = address(list[3].toUint());
+    //Ugly hard coding for now. Can only parse burn transactions.
+    tx.data = new bytes(36);
+    for (uint i = 0; i < 36; i++) {
+      tx.data[i] = rlpTransaction[rlpTransaction.length - 103 + i];
+    }
     return tx;
+  }
+
+
+  //rlpTransaction is a value at the bottom of the transaction trie.
+  function testGetTransactionDetails(bytes rlpTransaction) constant returns (uint, uint, address, bytes) {
+    Transaction memory tx;
+    RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
+    tx.gasPrice = list[1].toUint();
+    tx.gasLimit = list[2].toUint();
+    tx.to = address(list[3].toUint());
+    //Ugly hard coding for now. Can only parse burn transactions.
+    tx.data = new bytes(36);
+    for (uint i = 0; i < 36; i++) {
+      tx.data[i] = rlpTransaction[rlpTransaction.length - 103 + i];
+    }
+    return (tx.gasPrice, tx.gasLimit, tx.to, tx.data);
   }
 }
