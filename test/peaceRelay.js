@@ -77,9 +77,9 @@ contract('PeaceRelay', function(accounts) {
     }) */
 
     it("Tx parsing", function () {
-      return PeaceRelay.new().then(instance => {
-        peaceRelay = instance
-        return peaceRelay.getTransactionDetails.call(tx1.value).then(res => {
+      return ETCLocking.new().then(instance => {
+        etcLock = instance
+        return etcLock.getTransactionDetails.call(tx5.value).then(res => {
           console.log(res)
         })
       })

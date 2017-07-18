@@ -57,7 +57,7 @@ contract ETCLocking is SafeMath {
 
         //formalize interface, then fix this
         if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, recPrefix, rlpTransaction)) {
-            Transaction memory tx = getTransactionDetails(rlpTransaction);
+            Transaction memory tx;// = getTransactionDetails(rlpTransaction);
             bytes4 functionSig = getSig(tx.data);
 
             assert (functionSig == BURN_FUNCTION_SIG);
@@ -140,26 +140,41 @@ contract ETCLocking is SafeMath {
 
 
   //rlpTransaction is a value at the bottom of the transaction trie.
-  function getTransactionDetails(bytes rlpTransaction) internal returns (Transaction memory tx) {
-    var it = rlpTransaction.toRLPItem().iterator();
+  //function getTransactionDetails(bytes rlpTransaction) constant internal returns (Transaction memory tx) {
+    function getTransactionDetails(bytes rlpTransaction) constant returns (uint, uint, address, bytes) {
 
-    uint idx = 0;
-    while(it.hasNext()) {
-      if (idx == 0) {
-        tx.nonce = it.next().toUint();
-      } else if (idx == 1) {
-        tx.gasPrice = it.next().toUint();
-      } else if (idx == 2) {
-        tx.gasLimit = it.next().toUint();
-      } else if (idx == 3) {
-        tx.to = it.next().toAddress();
-      } else if (idx == 4) {
-        tx.value = it.next().toUint(); // amount of etc sent
-      } else if (idx == 5) {
-        tx.data = it.next().toBytes();
+      Transaction memory tx;
+      RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
+      tx.gasPrice = list[1].toUint();
+      tx.gasLimit = list[2].toUint();
+      tx.to = address(list[3].toUint());
+      tx.value = list[4].toUint(); // throws automatically if value == 0
+      tx.data = list[5].toBytes(); //runs out of gas if there is nothing here. 
+      /*
+      Transaction memory tx;
+      var it = rlpHeader.toRLPItem().iterator();
+
+      uint idx;
+      while(it.hasNext()) {
+       if (idx == 0) {
+         tx.nonce = it.next().toUint();
+       } else if (idx == 1) {
+         tx.gasPrice = bytes32(it.next().toUint());
+       } else if (idx == 2) {
+         tx.gasLimit = bytes32(it.next().toUint());
+       } else if (idx == 3) {
+         tx.to = bytes32(it.next().toUint());
+       } else if (idx == 4) {
+         tx.value = bytes32(it.next().toUint());
+       } else {
+         it.next();
+       }
+       idx++;
       }
-      idx++;
-    }
-    return tx;
+      return header;
+      */
+
+      return (tx.gasPrice, tx.gasLimit, tx.to, tx.data);
+    //return tx;
   }
 }
