@@ -4,9 +4,10 @@ import "./SafeMath.sol";
 import "./ERC20.sol";
 import "./PeaceRelay.sol";
 import "./RLP.sol";
+import "./Ownable.sol";
 
 
-contract ETCToken is ERC20, SafeMath {
+contract ETCToken is ERC20, SafeMath, Ownable {
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
   using RLP for bytes;
@@ -18,7 +19,7 @@ contract ETCToken is ERC20, SafeMath {
   string public version = 'v0.1';
   uint public totalSupply;
   uint public DEPOSIT_GAS_MINIMUM; //should be constant
-  bytes4 public LOCK_FUNCTION_SIG;
+  bytes4 public LOCK_FUNCTION_SIG=0xf435f5a7;
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
@@ -37,19 +38,26 @@ contract ETCToken is ERC20, SafeMath {
   event Burn(address indexed from, address indexed etcAddr, uint indexed value);
   event Mint(address indexed to, uint value);
 
-  function ETCToken(address peaceRelayAddr, address _etcLockingAddr, uint depositGasMinimum,
-                    bytes4 lockFunctionSig)
+  function ETCToken(address peaceRelayAddr, uint depositGasMinimum)
   {
     totalSupply = 0;
     name = 'ETCToken';        // Set the name for display purposes
     symbol = 'ETC';                       // Set the symbol for display purposes
     decimals = 9;                        // Amount of decimals for display purposes
     ETCRelay = PeaceRelay(peaceRelayAddr);
-    etcLockingAddr = _etcLockingAddr;
-    DEPOSIT_GAS_MINIMUM = depositGasMinimum;
-    LOCK_FUNCTION_SIG = lockFunctionSig;
+    DEPOSIT_GAS_MINIMUM = depositGasMinimum;    
   }
 
+  function setETCLockingAddr(address _etcLockingAddr) onlyOwner returns (bool) {
+  	etcLockingAddr = _etcLockingAddr;
+  	return true;
+  }
+ 
+  function ownerCredit(address addr, uint _amount) onlyOwner returns (bool){
+  	balances[addr] = safeAdd(balances[addr], _amount);
+  	totalSupply = safeAdd(totalSupply, _amount);
+  	return true;
+  }
 
   function mint(bytes rlpTxStack, uint[] txIndex, bytes prefix, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
   	if (ETCRelay.checkTxProof(blockHash, rlpTxStack, txIndex, prefix, rlpTransaction)) {
@@ -70,6 +78,7 @@ contract ETCToken is ERC20, SafeMath {
     }
     return false;
   }
+
 
   function burn(uint256 _value, address etcAddr) returns (bool success) {
     // safeSub already has throw, so no need to throw
@@ -117,7 +126,7 @@ contract ETCToken is ERC20, SafeMath {
 
 
   // HELPER FUNCTIONS
-  function getSig(bytes b) constant returns (bytes4 functionSig) {
+  function getSig(bytes b) internal returns (bytes4 functionSig) {
     if (b.length < 32) throw;
     assembly {
       let mask := 0xFFFFFFFF
@@ -129,7 +138,7 @@ contract ETCToken is ERC20, SafeMath {
 
   //grabs the first input from some function data
   //and implies that it is an address
-  function getAddress(bytes b) constant returns (address a) {
+  function getAddress(bytes b) internal returns (address a) {
     if (b.length < 36) return address(0);
     assembly {
       let mask := 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF

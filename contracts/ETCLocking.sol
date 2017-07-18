@@ -15,7 +15,7 @@ contract ETCLocking is SafeMath {
   string public version = 'v0.1';
   uint public totalSupply;
   uint public DEPOSIT_GAS_MINIMUM; //should be constant
-  bytes4 public BURN_FUNCTION_SIG;
+  bytes4 public BURN_FUNCTION_SIG = 0xfcd3533c;
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
@@ -39,24 +39,21 @@ contract ETCLocking is SafeMath {
   event Locked(address indexed from, address indexed ethAddr, uint value);
   event Unlocked(address indexed to, uint value);
 
-  function ETCLocking(address peaceRelayAddr, address _etcTokenAddr, uint depositGasMinimum,
-                    bytes4 burnFunctionSig)
+  function ETCLocking(address peaceRelayAddr, address _etcTokenAddr)
   {
     totalSupply = 0;
     ETHRelay = PeaceRelay(peaceRelayAddr);
     etcTokenAddr = _etcTokenAddr;
-    BURN_FUNCTION_SIG = burnFunctionSig;
   }
 
   function unlock(bytes rlpTxStack, uint[] txIndex, bytes txPrefix, bytes rlpTransaction, bytes rlpRecStack,
-                  uint[] recIndex, bytes recPrefix, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
-    //TODO: verify tx receipt
-    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, txPrefix, rlpReceipt)) {
+                  uint[] recIndex, bytes recPrefix, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {    
+    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, recPrefix, rlpReceipt)) {
         Log memory log = getReceiptDetails(rlpReceipt);
         if (log.etcAddr == 0) throw;
 
         //formalize interface, then fix this
-        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, recPrefix, rlpTransaction)) {
+        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, txPrefix, rlpTransaction)) {
             Transaction memory tx = getTransactionDetails(rlpTransaction);
             bytes4 functionSig = getSig(tx.data);
 
@@ -65,21 +62,21 @@ contract ETCLocking is SafeMath {
             assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
 
             //Can get these both from the log
-            //address etcAddress = getAddress(tx.data);
-            //uint etcValue = getValue(tx.data);
+            // address etcAddress = getAddress(tx.data);
+            // uint etcValue = getValue(tx.data);
 
             //totalSupply = safeSub(totalSupply, etcValue);
             // use transfer instead of send
-            //etcAddress.transfer(etcValue);
-            assert(totalSupply == this.balance);
-            //Unlocked(etcAddress, etcValue);
+            // etcAddress.transfer(etcValue);
+            // assert(totalSupply == this.balance);
+            // Unlocked(etcAddress, etcValue);
             return true;
         }
       return false;
     }
   }
 
-  function lock(address ethAddr) returns (bool success) {
+  function lock(address ethAddr) payable returns (bool success) {
     // safeAdd already has throw, so no need to throw
     // Note: This will never throw, as there is a max amount of tokens on a chain
     totalSupply = safeAdd(totalSupply, msg.value);
