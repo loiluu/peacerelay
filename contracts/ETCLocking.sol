@@ -14,7 +14,7 @@ contract ETCLocking is SafeMath {
   // Public variables of the token
   string public version = 'v0.1';
   uint public totalSupply;
-  uint public DEPOSIT_GAS_MINIMUM; //should be constant
+  // uint public DEPOSIT_GAS_MINIMUM=100000; //should be constant
   bytes4 public BURN_FUNCTION_SIG = 0xfcd3533c;
 
   mapping(address => uint) balances;
@@ -55,7 +55,6 @@ contract ETCLocking is SafeMath {
             Transaction memory tx = getTransactionDetails(rlpTransaction);
             assert (getSig(tx.data) == BURN_FUNCTION_SIG);
             assert (tx.to != etcTokenAddr);
-            assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
 
             //Can get these both from the log
             // address etcAddress = getAddress(tx.data);
