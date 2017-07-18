@@ -119,12 +119,10 @@ contract ETCToken is ERC20, SafeMath {
   // HELPER FUNCTIONS
   function getSig(bytes b) constant returns (bytes4 functionSig) {
     if (b.length < 32) throw;
-    assembly {
-      let mask := 0xFFFFFFFF
-      functionSig := and(mask, mload(add(b, 32)))
-      //32 is the offset of the first param of the data, if encoded properly.
-      //4 bytes for the function signature, 32 for the address and 32 for the value.
-    }
+    uint tmp = 0;
+    for (uint i=0; i < 4; i++)
+       tmp = tmp*(2**8)+uint8(b[i]);
+    return bytes4(tmp);
   }
 
   //grabs the first input from some function data
