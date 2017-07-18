@@ -23,7 +23,6 @@ contract ETCLocking is SafeMath {
   address etcTokenAddr; //maybe rename to EthLockingContract
 
   struct Transaction {
-    uint nonce;
     uint gasPrice;
     uint gasLimit;
     address to;
@@ -50,47 +49,31 @@ contract ETCLocking is SafeMath {
 
   function unlock(bytes rlpTxStack, uint[] txIndex, bytes txPrefix, bytes rlpTransaction, bytes rlpRecStack,
                   uint[] recIndex, bytes recPrefix, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
-    //TODO: verify tx receipt
     if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, txPrefix, rlpReceipt)) {
         Log memory log = getReceiptDetails(rlpReceipt);
-        if (log.etcAddr == 0) throw;
 
-        //formalize interface, then fix this
         if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, recPrefix, rlpTransaction)) {
-            Transaction memory tx;// = getTransactionDetails(rlpTransaction);
-            bytes4 functionSig = getSig(tx.data);
-
-            assert (functionSig == BURN_FUNCTION_SIG);
+            Transaction memory tx = getTransactionDetails(rlpTransaction);
+            assert (getSig(tx.data) == BURN_FUNCTION_SIG);
             assert (tx.to != etcTokenAddr);
-            assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
 
-            //Can get these both from the log
-            //address etcAddress = getAddress(tx.data);
-            //uint etcValue = getValue(tx.data);
-
-            //totalSupply = safeSub(totalSupply, etcValue);
-            // use transfer instead of send
-            //etcAddress.transfer(etcValue);
+            totalSupply = safeSub(totalSupply, log.value);
+            log.etcAddr.transfer(log.value);
             assert(totalSupply == this.balance);
-            //Unlocked(etcAddress, etcValue);
+            Unlocked(log.etcAddr, log.value);
             return true;
         }
       return false;
     }
   }
 
-  function lock(address ethAddr) returns (bool success) {
+  function lock(address ethAddr) payable returns (bool success) {
     // safeAdd already has throw, so no need to throw
     // Note: This will never throw, as there is a max amount of tokens on a chain
     totalSupply = safeAdd(totalSupply, msg.value);
     Locked(msg.sender, ethAddr, msg.value);
     return true;
   }
-
-  // Non-payable unnamed function prevents Ether from being sent accidentally
-  function () {}
-
-
 
   // HELPER FUNCTIONS
 
@@ -104,30 +87,9 @@ contract ETCLocking is SafeMath {
     }
   }
 
-  function getValue(bytes b) constant returns (uint value) {
-    if (b.length < 68) throw;
-    assembly {
-        value := mload(add(b, 68))
-        //68 is the offset of the first param of the data, if encoded properly.
-        //4 bytes for the function signature, 32 for the address and 32 for the value.
-    }
-  }
-
-  //grabs the first input from some function data
-  //and implies that it is an address
-  function getAddress(bytes b) constant returns (address a) {
-    if (b.length < 36) return address(0);
-    assembly {
-        let mask := 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-        a := and(mask, mload(add(b, 36)))
-        //36 is the offset of the first param of the data, if encoded properly.
-        //4 bytes for the function signature, and 32 for the address.
-    }
-  }
-
 
   //rlpTransaction is a value at the bottom of the transaction trie.
-  function getReceiptDetails(bytes rlpReceipt) internal returns (Log memory l) {
+  function getReceiptDetails(bytes rlpReceipt) constant internal returns (Log memory l) {
     RLP.RLPItem[] memory receipt = rlpReceipt.toRLPItem().toList();
     RLP.RLPItem[] memory logs = receipt[3].toList();
     RLP.RLPItem[] memory log = logs[0].toList();
@@ -135,46 +97,49 @@ contract ETCLocking is SafeMath {
 
     l.sender = address(logValue[1].toUint());
     l.etcAddr = address(logValue[2].toUint());
+    //THIS LINE MAY NOT WORK -- HAS NOT BEEN TESTED (not sure what happens when indexed, if it goes here or in data)
     l.value = logValue[3].toUint();
+  }
+
+  //rlpTransaction is a value at the bottom of the transaction trie.
+  function testGetReceiptDetails(bytes rlpReceipt) constant  returns (address, address, uint) {
+    RLP.RLPItem[] memory receipt = rlpReceipt.toRLPItem().toList();
+    RLP.RLPItem[] memory logs = receipt[3].toList();
+    RLP.RLPItem[] memory log = logs[0].toList();
+    RLP.RLPItem[] memory logValue = log[1].toList();
+
+    return (address(logValue[1].toUint()), address(logValue[2].toUint()), logValue[3].toUint());
   }
 
 
   //rlpTransaction is a value at the bottom of the transaction trie.
-  //function getTransactionDetails(bytes rlpTransaction) constant internal returns (Transaction memory tx) {
-    function getTransactionDetails(bytes rlpTransaction) constant returns (uint, uint, address, bytes) {
-
-      Transaction memory tx;
-      RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
-      tx.gasPrice = list[1].toUint();
-      tx.gasLimit = list[2].toUint();
-      tx.to = address(list[3].toUint());
-      tx.value = list[4].toUint(); // throws automatically if value == 0
-      tx.data = list[5].toBytes(); //runs out of gas if there is nothing here. 
-      /*
-      Transaction memory tx;
-      var it = rlpHeader.toRLPItem().iterator();
-
-      uint idx;
-      while(it.hasNext()) {
-       if (idx == 0) {
-         tx.nonce = it.next().toUint();
-       } else if (idx == 1) {
-         tx.gasPrice = bytes32(it.next().toUint());
-       } else if (idx == 2) {
-         tx.gasLimit = bytes32(it.next().toUint());
-       } else if (idx == 3) {
-         tx.to = bytes32(it.next().toUint());
-       } else if (idx == 4) {
-         tx.value = bytes32(it.next().toUint());
-       } else {
-         it.next();
-       }
-       idx++;
-      }
-      return header;
-      */
-
-      return (tx.gasPrice, tx.gasLimit, tx.to, tx.data);
-    //return tx;
+  function getTransactionDetails(bytes rlpTransaction) constant internal returns (Transaction memory tx) {
+    RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
+    tx.gasPrice = list[1].toUint();
+    tx.gasLimit = list[2].toUint();
+    tx.to = address(list[3].toUint());
+    //Ugly hard coding for now. Can only parse burn transactions.
+    tx.data = new bytes(68);
+    for (uint i = 0; i < 68; i++) {
+      tx.data[i] = rlpTransaction[rlpTransaction.length - 68 + i];
+    }
+    return tx;
   }
+
+  //rlpTransaction is a value at the bottom of the transaction trie.
+  function testGetTransactionDetails(bytes rlpTransaction) constant returns (uint, uint, address, bytes) {
+    Transaction memory tx;
+    RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
+    tx.gasPrice = list[1].toUint();
+    tx.gasLimit = list[2].toUint();
+    tx.to = address(list[3].toUint());
+    //Ugly hard coding for now. Can only parse burn transactions.
+    tx.data = new bytes(68);
+    for (uint i = 0; i < 68; i++) {
+      tx.data[i] = rlpTransaction[rlpTransaction.length - 135 + i];
+    }
+    return (tx.gasPrice, tx.gasLimit, tx.to, tx.data);
+  }
+
+
 }
