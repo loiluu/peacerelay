@@ -48,14 +48,15 @@ contract ETCLocking is SafeMath {
     BURN_FUNCTION_SIG = burnFunctionSig;
   }
 
-  function unlock(bytes rlpTxStack, uint[] txIndex, bytes rlpTransaction, bytes rlpRecStack, uint[] recIndex, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
+  function unlock(bytes rlpTxStack, uint[] txIndex, bytes txPrefix, bytes rlpTransaction, bytes rlpRecStack,
+                  uint[] recIndex, bytes recPrefix, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
     //TODO: verify tx receipt
-    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, rlpReceipt)) {
+    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, txPrefix, rlpReceipt)) {
         Log memory log = getReceiptDetails(rlpReceipt);
         if (log.etcAddr == 0) throw;
 
         //formalize interface, then fix this
-        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, rlpTransaction)) {
+        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, recPrefix, rlpTransaction)) {
             Transaction memory tx = getTransactionDetails(rlpTransaction);
             bytes4 functionSig = getSig(tx.data);
 
@@ -63,14 +64,15 @@ contract ETCLocking is SafeMath {
             assert (tx.to != etcTokenAddr);
             assert (tx.gasLimit >= DEPOSIT_GAS_MINIMUM);
 
-            address etcAddress = getAddress(tx.data);
-            uint etcValue = getValue(tx.data);
+            //Can get these both from the log
+            //address etcAddress = getAddress(tx.data);
+            //uint etcValue = getValue(tx.data);
 
-            totalSupply = safeSub(totalSupply, etcValue);
+            //totalSupply = safeSub(totalSupply, etcValue);
             // use transfer instead of send
-            etcAddress.transfer(etcValue);
+            //etcAddress.transfer(etcValue);
             assert(totalSupply == this.balance);
-            Unlocked(etcAddress, etcValue);
+            //Unlocked(etcAddress, etcValue);
             return true;
         }
       return false;

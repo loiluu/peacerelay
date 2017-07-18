@@ -51,8 +51,8 @@ contract ETCToken is ERC20, SafeMath {
   }
 
 
-  function mint(bytes rlpTxStack, uint[] txIndex, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
-  	if (ETCRelay.checkTxProof(blockHash, rlpTxStack, txIndex, rlpTransaction)) {
+  function mint(bytes rlpTxStack, uint[] txIndex, bytes prefix, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
+  	if (ETCRelay.checkTxProof(blockHash, rlpTxStack, txIndex, prefix, rlpTransaction)) {
       //  checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction)
       Transaction memory tx = getTransactionDetails(rlpTransaction);
       bytes4 functionSig = getSig(tx.data);
