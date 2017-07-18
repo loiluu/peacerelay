@@ -40,16 +40,7 @@ contract PeaceRelay {
         uint ethashResult;
         s = ethash.computeS(uint(sha3(rlpHeader)), uint(nonceLe));
         ethashResult = ethash.computeSha3(s, cmix);
-        if (ethashResult > ((2 ** 256 - 1) / targetDifficulty)) {
-            throw;
-            // should we log error message? or just throw anyway
-            if (ethashResult == 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE) {
-
-            } else {
-
-            }
-            return;
-        }
+        if (ethashResult > ((2 ** 256 - 1) / targetDifficulty)) throw;
 
         blocks[blockHash] = header;
     }
@@ -103,7 +94,7 @@ contract PeaceRelay {
         BlockHeader memory header;
         var it = rlpHeader.toRLPItem().iterator();
 
-        bytes8 nonceLe = 0x1234;
+        bytes8 nonceLe;
         uint idx;
         uint difficulty;
         while (it.hasNext()) {
@@ -119,7 +110,7 @@ contract PeaceRelay {
                 difficulty = it.next().toUint();
             } else if (idx == 14) { // need to find out which one is nonce
                 // extract nonce from header
-                nonceLe = bytes8(it.next().toBytes32());
+                nonceLe = bytes8(uint64(it.next().toUint()));
             }
             else {
                 it.next();
