@@ -58,7 +58,7 @@ contract ETCToken is ERC20, SafeMath, Ownable {
   	return true;
   }
 
-  function mint(bytes rlpTxStack, uint[] txIndex, bytes prefix, bytes rlpTransaction, bytes32 blockHash) returns (bool success) {
+  function mint(bytes32 blockHash, bytes rlpTxStack, uint[] txIndex, bytes prefix, bytes rlpTransaction) returns (bool success) {
   	if (ETCRelay.checkTxProof(blockHash, rlpTxStack, txIndex, prefix, rlpTransaction)) {
       //  checkTxProof(bytes32 blockHash, bytes rlpStack, uint[] indexes, bytes rlpTransaction)
       Transaction memory tx = getTransactionDetails(rlpTransaction);
@@ -125,7 +125,7 @@ contract ETCToken is ERC20, SafeMath, Ownable {
 
 
   // HELPER FUNCTIONS
-  function getSig(bytes b) internal returns (bytes4 functionSig) {
+  function getSig(bytes b) constant returns (bytes4 functionSig) {
     if (b.length < 32) throw;
     uint tmp = 0;
     for (uint i=0; i < 4; i++)
@@ -151,6 +151,7 @@ contract ETCToken is ERC20, SafeMath, Ownable {
     tx.gasPrice = list[1].toUint();
     tx.gasLimit = list[2].toUint();
     tx.to = address(list[3].toUint());
+    tx.value = list[4].toUint();
     //Ugly hard coding for now. Can only parse burn transactions.
     tx.data = new bytes(36);
     for (uint i = 0; i < 36; i++) {
@@ -161,17 +162,18 @@ contract ETCToken is ERC20, SafeMath, Ownable {
 
 
   //rlpTransaction is a value at the bottom of the transaction trie.
-  function testGetTransactionDetails(bytes rlpTransaction) constant returns (uint, uint, address, bytes) {
+  function testGetTransactionDetails(bytes rlpTransaction) constant returns (uint, uint, address, uint, bytes) {
     Transaction memory tx;
     RLP.RLPItem[] memory list = rlpTransaction.toRLPItem().toList();
     tx.gasPrice = list[1].toUint();
     tx.gasLimit = list[2].toUint();
     tx.to = address(list[3].toUint());
+    tx.value = list[4].toUint();
     //Ugly hard coding for now. Can only parse burn transactions.
     tx.data = new bytes(36);
     for (uint i = 0; i < 36; i++) {
       tx.data[i] = rlpTransaction[rlpTransaction.length - 103 + i];
     }
-    return (tx.gasPrice, tx.gasLimit, tx.to, tx.data);
+    return (tx.gasPrice, tx.gasLimit, tx.to, tx.value, tx.data);
   }
 }

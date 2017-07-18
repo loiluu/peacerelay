@@ -14,8 +14,8 @@ contract ETCLocking is SafeMath {
   // Public variables of the token
   string public version = 'v0.1';
   uint public totalSupply;
-  // uint public DEPOSIT_GAS_MINIMUM=100000; //should be constant
-  bytes4 public BURN_FUNCTION_SIG = 0xfcd3533c;
+  uint public DEPOSIT_GAS_MINIMUM; //should be constant
+  bytes4 public BURN_FUNCTION_SIG;
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
@@ -35,40 +35,32 @@ contract ETCLocking is SafeMath {
     address etcAddr;
     uint value;
   }
+
   event Locked(address indexed from, address indexed ethAddr, uint value);
   event Unlocked(address indexed to, uint value);
 
-  function ETCLocking(address peaceRelayAddr, address _etcTokenAddr)
+  function ETCLocking(address peaceRelayAddr, address _etcTokenAddr, uint depositGasMinimum,
+                    bytes4 burnFunctionSig)
   {
     totalSupply = 0;
     ETHRelay = PeaceRelay(peaceRelayAddr);
     etcTokenAddr = _etcTokenAddr;
+    BURN_FUNCTION_SIG = burnFunctionSig;
   }
 
   function unlock(bytes rlpTxStack, uint[] txIndex, bytes txPrefix, bytes rlpTransaction, bytes rlpRecStack,
-                  uint[] recIndex, bytes recPrefix, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {    
-    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, recPrefix, rlpReceipt)) {
+                  uint[] recIndex, bytes recPrefix, bytes rlpReceipt, bytes32 blockHash) returns (bool success) {
+    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, txPrefix, rlpReceipt)) {
         Log memory log = getReceiptDetails(rlpReceipt);
 
-        //formalize interface, then fix this
-        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, txPrefix, rlpTransaction)) {
+        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, recPrefix, rlpTransaction)) {
             Transaction memory tx = getTransactionDetails(rlpTransaction);
             assert (getSig(tx.data) == BURN_FUNCTION_SIG);
             assert (tx.to != etcTokenAddr);
 
-            //Can get these both from the log
-            // address etcAddress = getAddress(tx.data);
-            // uint etcValue = getValue(tx.data);
-
-            //totalSupply = safeSub(totalSupply, etcValue);
-            // use transfer instead of send
-            // etcAddress.transfer(etcValue);
-            // assert(totalSupply == this.balance);
-            // Unlocked(etcAddress, etcValue);
-
             totalSupply = safeSub(totalSupply, log.value);
             log.etcAddr.transfer(log.value);
-            // assert(totalSupply == this.balance);
+            assert(totalSupply == this.balance);
             Unlocked(log.etcAddr, log.value);
             return true;
         }

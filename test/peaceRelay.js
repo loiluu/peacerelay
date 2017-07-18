@@ -47,6 +47,24 @@ function checkReceipt(peaceRelay, txData, shouldPass) {
   })
 }
 
+/*
+function doMint(txData) {
+  return new Promise((resolve, reject) => {
+    var peaceRelay
+    var etcToken
+    return PeaceRelay.new().then(instance => {
+      peaceRelay = instance
+      return ETCToken.new(peaceRelay.address)
+    })
+    return peaceRelay.submitBlock(txData.blockhash, txData.header).then(() => {
+      return peaceRelay.checkReceiptProof.call(txData.blockhash, txData.stack, txData.path, txData.prefix, txData.value)
+    }).then(res => {
+      assert.equal(res, shouldPass, "Should have returned " + shouldPass)
+      resolve()
+    })
+  })
+} */
+
 
 contract('PeaceRelay', function(accounts) {
   var peaceRelay
@@ -84,29 +102,40 @@ contract('PeaceRelay', function(accounts) {
       var etcToken
       return ETCLocking.new().then(instance => {
         etcLock = instance
+        /*
         return PeaceRelay.new()
       }).then(instance => {
         peaceRelay = instance
-        return checkTransaction(peaceRelay, burnTransaction, true)
+        return checkTransaction(peaceRelay, firstRealTx, true)
       }).then(() => {
-        return etcLock.testGetTransactionDetails.call(burnTransaction.value)
+        return etcLock.testGetTransactionDetails.call(firstRealTx.value)
       }).then(res => {
-        console.log("Burn Parsed:", res[3]);
+        console.log("Lock Parsed:", res[3]);
         return etcLock.getSig(res[3])
       }).then(sig => {
-        assert.equal(sig, "0xfcd3533c", "should have burn signature")
+        assert.equal(sig, "0xf435f5a7", "should have lock signature")
         return etcLock.testGetReceiptDetails.call(burnTransactionReceipt.value)
       }).then(res => {
-        console.log("Burn Receipt Parsed:", res)
+        console.log("Burn Receipt Parsed:", res) */
+        return PeaceRelay.new()
+      }).then(instance => {
+        peaceRelay = instance
+        return checkTransaction(peaceRelay, firstRealTx, true)
+      }).then(() => {
         return ETCToken.new()
       }).then(instance => {
         etcToken = instance
-        return etcToken.testGetTransactionDetails(lockTransaction.value)
+        return etcToken.testGetTransactionDetails(firstRealTx.value)
       }).then(res => {
         console.log("Lock Parsed", res)
         return etcToken.getAddress(res[3])
       }).then(add => {
         console.log(add)
+        return etcToken.testGetTransactionDetails(firstRealTx.value)
+      }).then(res => {
+        return etcToken.getSig(res[3])
+      }).then(sig => {
+        assert.equal(sig, "0xf435f5a7", "should have lock signature")
       })
     })
 
@@ -310,3 +339,13 @@ var lockTransactionReceipt = { blockhash: '0xa30dc3cd34a52381c65a6fc8fffad9dc0ae
   path: [ 8, 1 ],
   value: '0xf901c6a0e57c23cae413b0840a29205b92f3e616ab61605bc6651bbfd2c36222ae45e36282b08cb9010000000000000000200000000010040000000000000010000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000800000200010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000020000f89df89b94c839a8b97304475d23acaf8188ace8a7e67a56a7f863a0989eaa915cbb416ea3d6f9a63b1a3de51770c7674b11fe21ecdf76b4e1d13910a0000000000000000000000000bb01a0c318ce3494f095c33c87e4aa6cfee09855a0000000000000000000000000d8430052df5ff8d778dd83f8380b561e7371cf7ea00000000000000000000000000000000000000000000000000000000005f5e100',
   prefix: '0xb901c9' }
+
+var firstRealTx = { blockhash: '0x51c92d45e39db17e43f0f7333de44c592b504bb8ac24dc3c39135d46655bae4f',
+  header: '0xf90217a05b5782c32df715c083da95b805959d4718ec698915a4b0288e325aa346436be1a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d4934794fee3a49dc4243fa92019fc4331228043b3c5e825a013a50145091c1b5bae07abe10da88c54c5111c3fbb74fc91074ad2ffec311f6ba00c673fc4822ba97cc737cfa7a839d6f6f755deedb1506490911f710bfa9315bfa00c1fcb2441331ab1abc2e174a7293acce160d0b04f35a4b791bf89e9fd452b10b9010000000000000000200000000000000000000000000010002000000000000000000040000000000000000000000010000000000000000000000040000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000100840c0b580c83142cf68347e7c4830428a184596e599f99d883010606846765746887676f312e382e338664617277696ea06ebda3617b113ba6550d08cb34119f940ddb96b509c62b7d0a8420722329d5b48861ebb9e58c93ac26',
+  stateRoot: '0x13a50145091c1b5bae07abe10da88c54c5111c3fbb74fc91074ad2ffec311f6b',
+  txRoot: '0x0c673fc4822ba97cc737cfa7a839d6f6f755deedb1506490911f710bfa9315bf',
+  receiptRoot: '0x0c1fcb2441331ab1abc2e174a7293acce160d0b04f35a4b791bf89e9fd452b10',
+  stack: '0xf8eaf851a0da42945ae3c75118e89abff39ad566fd0a30b574e5df8ae70ce59d4cc5f19cb180808080808080a0ca85a0d0ed219e8583feadf2dce0a73aa05e7d6a790c32efcc1dd6c901195f168080808080808080f89530b892f890038506fc23ac00830494e594b13f6f423781bd1934fc8599782f5e161ce7c816872386f26fc10000a4f435f5a7000000000000000000000000c198eccab3fe1f35e9160b48eb18af7934a1326229a04602fcb7ef369fbe1e6d7d1658934a18bcc3b373454fc33dedb53cd9dd0226d2a03a94a58becc2493007a6411b73a2b5c5a58b17b7a79bbb103568cc62b8945961',
+  path: [ 8, 1 ],
+  value: '0xf890038506fc23ac00830494e594b13f6f423781bd1934fc8599782f5e161ce7c816872386f26fc10000a4f435f5a7000000000000000000000000c198eccab3fe1f35e9160b48eb18af7934a1326229a04602fcb7ef369fbe1e6d7d1658934a18bcc3b373454fc33dedb53cd9dd0226d2a03a94a58becc2493007a6411b73a2b5c5a58b17b7a79bbb103568cc62b8945961',
+  prefix: '0xb892' }
