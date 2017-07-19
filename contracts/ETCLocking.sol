@@ -14,8 +14,7 @@ contract ETCLocking is SafeMath {
   // Public variables of the token
   string public version = 'v0.1';
   uint public totalSupply;
-  uint public DEPOSIT_GAS_MINIMUM; //should be constant
-  bytes4 public BURN_FUNCTION_SIG;
+  bytes4 public BURN_FUNCTION_SIG = "0xfcd3533c";
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
@@ -39,13 +38,10 @@ contract ETCLocking is SafeMath {
   event Locked(address indexed from, address indexed ethAddr, uint value);
   event Unlocked(address indexed to, uint value);
 
-  function ETCLocking(address peaceRelayAddr, address _etcTokenAddr, uint depositGasMinimum,
-                    bytes4 burnFunctionSig)
-  {
+  function ETCLocking(address peaceRelayAddr, address _etcTokenAddr) {
     totalSupply = 0;
     ETHRelay = PeaceRelay(peaceRelayAddr);
     etcTokenAddr = _etcTokenAddr;
-    BURN_FUNCTION_SIG = burnFunctionSig;
   }
 
   function unlock(bytes32 blockHash, bytes rlpTxStack, uint[] txIndex, bytes txPrefix, bytes rlpTransaction,
