@@ -14,7 +14,7 @@ contract ETCLocking is SafeMath {
   // Public variables of the token
   string public version = 'v0.1';
   uint public totalSupply;
-  bytes4 public BURN_FUNCTION_SIG = "0xfcd3533c";
+  bytes4 public BURN_FUNCTION_SIG = 0xfcd3533c;
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;

@@ -18,8 +18,8 @@ contract ETCToken is ERC20, SafeMath, Ownable {
   uint8 public decimals;    //How many decimals to show.
   string public version = 'v0.1';
   uint public totalSupply;
-  uint public DEPOSIT_GAS_MINIMUM=100000; //should be constant
-  bytes4 public LOCK_FUNCTION_SIG=0xf435f5a7;
+  uint public DEPOSIT_GAS_MINIMUM = 100000; //should be constant
+  bytes4 public LOCK_FUNCTION_SIG = 0xf435f5a7;
 
   mapping(address => uint) balances;
   mapping (address => mapping (address => uint)) allowed;
