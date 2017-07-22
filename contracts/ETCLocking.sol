@@ -46,13 +46,13 @@ contract ETCLocking is SafeMath {
 
   function unlock(bytes32 blockHash, bytes rlpTxStack, uint[] txIndex, bytes txPrefix, bytes rlpTransaction,
                   bytes rlpRecStack, uint[] recIndex, bytes recPrefix, bytes rlpReceipt) returns (bool success) {
-    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, txPrefix, rlpReceipt)) {
+    if (ETHRelay.checkReceiptProof(blockHash, rlpRecStack, recIndex, recPrefix, rlpReceipt)) {
         Log memory log = getReceiptDetails(rlpReceipt);
 
-        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, recPrefix, rlpTransaction)) {
+        if (ETHRelay.checkTxProof(blockHash, rlpTxStack, txIndex, txPrefix, rlpTransaction)) {
             Transaction memory tx = getTransactionDetails(rlpTransaction);
             assert (getSig(tx.data) == BURN_FUNCTION_SIG);
-            assert (tx.to != etcTokenAddr);
+            assert (tx.to == etcTokenAddr);
 
             totalSupply = safeSub(totalSupply, log.value);
             log.etcAddr.transfer(log.value);
