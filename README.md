@@ -1,5 +1,6 @@
 # Peace Relay
-before getting to know Peace Relay, you should first learn about how [BTC Relay](https://github.com/ethereum/btcrelay) works
+1. before getting to know Peace Relay, you should first learn about how [BTC Relay](https://github.com/ethereum/btcrelay) works
+2. formal introduction of Peace Relay and more detail by Lio Luu on [medium](https://medium.com/@loiluu/peacerelay-connecting-the-many-ethereum-blockchains-22605c300ad3)!
 ## What is Peace Relay
 Peace Relay is a system of smart contracts that aim to allow for cross-EVM-chain communication using relay contracts. 
 
@@ -18,6 +19,7 @@ This, along with the wonderful Ethash verification work done by SmartPool, allow
         * block header of ETH is submitted into `PeaceRelay` contract on ETC and vice versa
     2. deploy `ETCLocking` on ETH and `ETCToken` on ETC
     3. send transaction to execute `ETCLocking.lock` function along with amount of ethers to lock
+        * note that in `ETCLocking.lock` function, there's no way this function will abort(throw) unless no enough gas is provided for execution, so in order to make sure that ethers did get locked in we require that transaction sender must provide with enough amount of gas
     4. generate the proof of the transaction in step 4 off-chain
     5. send transaction to execute `ETCToken.mint` function provided with proof from step 5
         * then user can spend those tokens at will until someday they wish to convert them back to ethers in ETH
