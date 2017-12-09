@@ -1,7 +1,7 @@
 # Peace Relay
 1. before getting to know Peace Relay, you should first learn about how [BTC Relay](https://github.com/ethereum/btcrelay) works
-2. formal introduction of Peace Relay and more detail by Lio Luu on [medium](https://medium.com/@loiluu/peacerelay-connecting-the-many-ethereum-blockchains-22605c300ad3)!
-## What is Peace Relay
+2. formal introduction of Peace Relay and more detail by Loi Luu on [medium](https://medium.com/@loiluu/peacerelay-connecting-the-many-ethereum-blockchains-22605c300ad3)!
+## What is PeaceRelay
 Peace Relay is a system of smart contracts that aim to allow for cross-EVM-chain communication using relay contracts. 
 
 These contracts will be able to verifiy merkle-patricia proofs about state, transactions, or receipts within specific blocks. 
